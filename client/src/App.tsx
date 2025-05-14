@@ -7,6 +7,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import NotFound from "@/pages/not-found";
 import Home from "@/pages/Home";
 import { getTelegramUser } from "@/lib/telegram";
+import LoadingAnimation from "@/components/LoadingAnimation";
 
 function Router() {
   return (
@@ -20,6 +21,7 @@ function Router() {
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
   const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [showSplash, setShowSplash] = useState<boolean>(true);
 
   useEffect(() => {
     const authenticate = async () => {
@@ -48,6 +50,17 @@ function App() {
     authenticate();
   }, []);
 
+  // Handle animation completion
+  const handleAnimationComplete = () => {
+    setShowSplash(false);
+  };
+
+  // Show loading animation on launch
+  if (showSplash) {
+    return <LoadingAnimation onComplete={handleAnimationComplete} />;
+  }
+
+  // Show loading state after animation if still authenticating
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-light">
