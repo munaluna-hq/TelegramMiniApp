@@ -56,7 +56,65 @@ function App() {
     );
   }
 
+  // For development purposes - auto-authenticate in development mode
+  const isDevelopment = process.env.NODE_ENV === 'development';
+  
+  if (isDevelopment && !isAuthenticated) {
+    console.log("Development mode: Auto-authenticating");
+    setIsAuthenticated(true);
+  }
+  
   if (!isAuthenticated) {
+    // Create a mock user for development testing
+    const mockTelegramUser = {
+      id: 12345,
+      first_name: "Test",
+      last_name: "User",
+      username: "testuser",
+      auth_date: Math.floor(Date.now() / 1000)
+    };
+    
+    // Try to detect if we're in Telegram's webview
+    const isInTelegram = window.Telegram && window.Telegram.WebApp;
+    
+    // If we're in Telegram but not authenticated, try to authenticate again
+    if (isInTelegram) {
+      // Try to authenticate with Telegram data 
+      const retryAuthentication = async () => {
+        try {
+          const user = getTelegramUser(); // Import from telegram.ts
+          
+          if (user) {
+            // Register or authenticate user with our backend
+            const response = await fetch("/api/auth", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ telegramUser: user }),
+            });
+            
+            if (response.ok) {
+              setIsAuthenticated(true);
+            }
+          }
+        } catch (error) {
+          console.error("Authentication retry error:", error);
+        }
+      };
+      
+      // Try to authenticate after a short delay
+      setTimeout(() => {
+        retryAuthentication();
+      }, 500);
+      
+      // Show loading while trying to authenticate
+      return (
+        <div className="min-h-screen flex items-center justify-center bg-light">
+          <div className="text-primary text-xl font-heading">Загрузка...</div>
+        </div>
+      );
+    }
+    
+    // Not in Telegram and not authenticated
     return (
       <div className="min-h-screen flex flex-col items-center justify-center bg-light p-4">
         <div className="bg-white rounded-xl shadow-md p-6 max-w-md w-full text-center">

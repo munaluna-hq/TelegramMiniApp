@@ -13,14 +13,43 @@ export interface TelegramUser {
 export function getTelegramUser(): TelegramUser | null {
   if (window.Telegram && window.Telegram.WebApp) {
     if (!window.Telegram.WebApp.initDataUnsafe || !window.Telegram.WebApp.initDataUnsafe.user) {
-      console.warn("No Telegram user data available");
+      console.log("Telegram WebApp found, but no user data available yet. This is normal on initial load.");
+      
+      // For development/testing only - return mock user if in development mode
+      if (process.env.NODE_ENV === 'development') {
+        console.log("Development mode: Using mock user data");
+        return {
+          id: 12345,
+          first_name: "Test",
+          last_name: "User",
+          username: "testuser",
+          auth_date: Math.floor(Date.now() / 1000),
+          hash: "mock_hash"
+        };
+      }
+      
       return null;
     }
     
+    console.log("Telegram user data found:", window.Telegram.WebApp.initDataUnsafe.user);
     return window.Telegram.WebApp.initDataUnsafe.user as TelegramUser;
   }
   
   console.warn("Telegram Web App not found");
+  
+  // For development/testing only - return mock user if in development mode
+  if (process.env.NODE_ENV === 'development') {
+    console.log("Development mode: Using mock user data");
+    return {
+      id: 12345,
+      first_name: "Test",
+      last_name: "User",
+      username: "testuser",
+      auth_date: Math.floor(Date.now() / 1000),
+      hash: "mock_hash"
+    };
+  }
+  
   return null;
 }
 
