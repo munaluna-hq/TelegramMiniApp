@@ -13,20 +13,27 @@
   --card-foreground: 20 14.3% 4.1%;
   --border: 20 5.9% 90%;
   --input: 20 5.9% 90%;
-  --primary: 262 83% 64%;
-  --primary-foreground: 211 100% 99%;
-  --secondary: 60 4.8% 95.9%;
-  --secondary-foreground: 24 9.8% 10%;
-  --accent: 60 4.8% 95.9%;
-  --accent-foreground: 24 9.8% 10%;
+  
+  /* MunaLuna brand colors */
+  --primary: 330 82% 65%;          /* Основной розовый цвет: rgb(237, 92, 165) */
+  --primary-foreground: 0 0% 100%;
+  --secondary: 340 60% 98%;        /* Светло-розовый: rgb(254, 244, 248) */
+  --secondary-foreground: 330 70% 40%;
+  --accent: 150 40% 94%;           /* Мятно-зеленый: rgb(233, 249, 241) */
+  --accent-foreground: 150 40% 30%;
+  
   --destructive: 0 84.2% 60.2%;
   --destructive-foreground: 60 9.1% 97.8%;
-  --ring: 20 14.3% 4.1%;
+  --ring: 330 82% 65%;
   --radius: 0.5rem;
   
+  /* Pattern backgrounds */
+  --pattern-primary: 343 77% 82%;  /* rgb(245, 174, 203) с прозрачностью 0.1 */
+  --pattern-secondary: 146 40% 78%; /* rgb(167, 232, 197) с прозрачностью 0.08 */
+  
   /* Custom colors for menstrual phases */
-  --menstruation: 0 84% 70%;
-  --clean: 142 70% 45%;
+  --menstruation: 330 82% 65%;     /* Same as primary */
+  --clean: 150 40% 70%;            /* Based on accent */
   --ovulation: 38 92% 50%;
 }
 
@@ -41,15 +48,18 @@
   --card-foreground: 0 0% 98%;
   --border: 240 3.7% 15.9%;
   --input: 240 3.7% 15.9%;
-  --primary: 262 83% 64%;
-  --primary-foreground: 211 100% 99%;
-  --secondary: 240 3.7% 15.9%;
-  --secondary-foreground: 0 0% 98%;
-  --accent: 240 3.7% 15.9%;
-  --accent-foreground: 0 0% 98%;
+  
+  /* MunaLuna dark theme colors */
+  --primary: 330 82% 65%;          /* Keep primary the same in dark mode */
+  --primary-foreground: 0 0% 100%;
+  --secondary: 330 30% 15%;        /* Darker version of primary color */
+  --secondary-foreground: 340 60% 90%;
+  --accent: 150 30% 20%;           /* Darker mint green */
+  --accent-foreground: 150 40% 90%;
+  
   --destructive: 0 62.8% 30.6%;
   --destructive-foreground: 0 0% 98%;
-  --ring: 240 4.9% 83.9%;
+  --ring: 330 82% 65%;
   --radius: 0.5rem;
 }
 
@@ -100,9 +110,26 @@
   border-color: hsl(var(--ovulation));
 }
 
+/* Pattern backgrounds with custom colors */
+.bg-pattern-primary {
+  background-color: rgba(245, 174, 203, 0.1);
+  background-image: radial-gradient(rgba(245, 174, 203, 0.2) 1px, transparent 1px);
+  background-size: 20px 20px;
+}
+
+.bg-pattern-secondary {
+  background-color: rgba(233, 249, 241, 0.5);
+  background-image: radial-gradient(rgba(167, 232, 197, 0.15) 1px, transparent 1px);
+  background-size: 20px 20px;
+}
+
+.bg-light {
+  background-color: rgb(254, 244, 248); /* --secondary */
+}
+
 @layer components {
   .tab-active {
-    @apply text-primary;
+    @apply text-primary font-semibold;
   }
   
   .tab-inactive {
@@ -115,5 +142,25 @@
   
   .phase-indicator {
     @apply w-3 h-3 rounded-full mt-1;
+  }
+  
+  .btn-primary {
+    @apply bg-primary text-white hover:bg-primary/90 rounded-md px-4 py-2 font-medium;
+  }
+  
+  .btn-secondary {
+    @apply bg-secondary text-primary hover:bg-secondary/90 rounded-md px-4 py-2 font-medium;
+  }
+  
+  .card {
+    @apply bg-white rounded-xl shadow-sm border border-gray-100 p-4;
+  }
+  
+  .card-accent {
+    @apply bg-accent rounded-xl shadow-sm border border-gray-100 p-4;
+  }
+  
+  .font-heading {
+    @apply font-semibold;
   }
 }
