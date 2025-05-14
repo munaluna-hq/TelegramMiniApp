@@ -1,0 +1,340 @@
+import { useState } from "react";
+import { ChevronLeft, ChevronRight } from "lucide-react";
+import { format, addDays, subDays, isSameDay } from "date-fns";
+import { ru } from "date-fns/locale";
+import { useQuery, useMutation } from "@tanstack/react-query";
+import { apiRequest } from "@/lib/queryClient";
+import { queryClient } from "@/lib/queryClient";
+import { getPhaseNameInRussian } from "@/lib/cycleCalculations";
+import { Textarea } from "@/components/ui/textarea";
+import { Input } from "@/components/ui/input";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+
+export default function DailyTracker() {
+  const [currentDate, setCurrentDate] = useState<Date>(new Date());
+
+  // Fetch cycle data to determine phase
+  const { data: cycleData } = useQuery({
+    queryKey: ['/api/cycles'],
+  });
+
+  // Fetch prayer times
+  const { data: prayerTimes } = useQuery({
+    queryKey: ['/api/prayer-times', format(currentDate, 'yyyy-MM-dd')],
+  });
+
+  // Fetch daily worship data
+  const { data: worshipData } = useQuery({
+    queryKey: ['/api/worship', format(currentDate, 'yyyy-MM-dd')],
+  });
+
+  // Save worship data mutation
+  const saveWorshipMutation = useMutation({
+    mutationFn: async (data: any) => {
+      return apiRequest("POST", "/api/worship", {
+        date: format(currentDate, 'yyyy-MM-dd'),
+        ...data
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/worship', format(currentDate, 'yyyy-MM-dd')] });
+    },
+  });
+
+  const handlePrevDay = () => {
+    setCurrentDate((prev) => subDays(prev, 1));
+  };
+
+  const handleNextDay = () => {
+    setCurrentDate((prev) => addDays(prev, 1));
+  };
+
+  const handlePrayerChange = (prayer: string, value: boolean) => {
+    const updatedPrayers = {
+      ...(worshipData?.prayers || {}),
+      [prayer]: value
+    };
+    
+    saveWorshipMutation.mutate({
+      prayers: updatedPrayers,
+      quranReading: worshipData?.quranReading || 0,
+      dua: worshipData?.dua || false,
+      sadaqa: worshipData?.sadaqa || false,
+      fast: worshipData?.fast || "none",
+      note: worshipData?.note || ""
+    });
+  };
+
+  const handleQuranChange = (minutes: number) => {
+    saveWorshipMutation.mutate({
+      prayers: worshipData?.prayers || {},
+      quranReading: minutes,
+      dua: worshipData?.dua || false,
+      sadaqa: worshipData?.sadaqa || false,
+      fast: worshipData?.fast || "none",
+      note: worshipData?.note || ""
+    });
+  };
+
+  const handleDuaChange = (value: boolean) => {
+    saveWorshipMutation.mutate({
+      prayers: worshipData?.prayers || {},
+      quranReading: worshipData?.quranReading || 0,
+      dua: value,
+      sadaqa: worshipData?.sadaqa || false,
+      fast: worshipData?.fast || "none",
+      note: worshipData?.note || ""
+    });
+  };
+
+  const handleSadaqaChange = (value: boolean) => {
+    saveWorshipMutation.mutate({
+      prayers: worshipData?.prayers || {},
+      quranReading: worshipData?.quranReading || 0,
+      dua: worshipData?.dua || false,
+      sadaqa: value,
+      fast: worshipData?.fast || "none",
+      note: worshipData?.note || ""
+    });
+  };
+
+  const handleFastChange = (value: string) => {
+    saveWorshipMutation.mutate({
+      prayers: worshipData?.prayers || {},
+      quranReading: worshipData?.quranReading || 0,
+      dua: worshipData?.dua || false,
+      sadaqa: worshipData?.sadaqa || false,
+      fast: value,
+      note: worshipData?.note || ""
+    });
+  };
+
+  const handleNoteChange = (value: string) => {
+    saveWorshipMutation.mutate({
+      prayers: worshipData?.prayers || {},
+      quranReading: worshipData?.quranReading || 0,
+      dua: worshipData?.dua || false,
+      sadaqa: worshipData?.sadaqa || false,
+      fast: worshipData?.fast || "none",
+      note: value
+    });
+  };
+
+  // Determine if the current day is in menstruation phase
+  const currentCycleDay = cycleData?.find(day => 
+    day.date && isSameDay(new Date(day.date), currentDate)
+  );
+  const isMenstruationPhase = currentCycleDay?.phase === "menstruation";
+
+  return (
+    <div className="p-4">
+      <div className="flex justify-between items-center mb-4">
+        <h2 className="text-xl font-semibold">Трекер ибадатов</h2>
+        <div className="flex items-center">
+          <button onClick={handlePrevDay} className="text-dark mr-2">
+            <ChevronLeft className="h-5 w-5" />
+          </button>
+          <button onClick={handleNextDay} className="text-dark">
+            <ChevronRight className="h-5 w-5" />
+          </button>
+        </div>
+      </div>
+
+      {/* Date Display */}
+      <div className="text-center mb-4">
+        <h3 className="text-lg font-medium">
+          {format(currentDate, "d MMMM yyyy", { locale: ru })}
+        </h3>
+        {currentCycleDay && (
+          <div className="flex justify-center mt-1">
+            <div className="flex items-center">
+              <div className={`w-3 h-3 ${
+                currentCycleDay.phase === "menstruation" ? "bg-menstruation" : 
+                currentCycleDay.phase === "ovulation" ? "bg-ovulation" : "bg-clean"
+              } rounded-full mr-2`}></div>
+              <span className="text-sm text-gray-600">
+                {getPhaseNameInRussian(currentCycleDay.phase)}
+              </span>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Menstruation Phase Message */}
+      {isMenstruationPhase && (
+        <div className="bg-purple-50 border border-primary rounded-xl p-4 mb-6 text-center">
+          <p className="text-primary font-medium mb-2">Ты в фазе отдыха.</p>
+          <p className="text-sm text-gray-600">И это тоже поклонение 💜</p>
+          {/* SVG illustration of a woman in hijab relaxing */}
+          <div className="mt-4 flex justify-center">
+            <svg width="160" height="120" viewBox="0 0 160 120" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M80 20C88.2843 20 95 26.7157 95 35C95 43.2843 88.2843 50 80 50C71.7157 50 65 43.2843 65 35C65 26.7157 71.7157 20 80 20Z" fill="#8B5CF6" fillOpacity="0.2"/>
+              <path d="M80 45C84.1421 45 87.5 41.6421 87.5 37.5C87.5 33.3579 84.1421 30 80 30C75.8579 30 72.5 33.3579 72.5 37.5C72.5 41.6421 75.8579 45 80 45Z" fill="#8B5CF6"/>
+              <path d="M60 60C60 51.7157 68.9543 45 80 45C91.0457 45 100 51.7157 100 60V100H60V60Z" fill="#8B5CF6" fillOpacity="0.2"/>
+              <path d="M95 55C95 55 90 65 80 65C70 65 65 55 65 55" stroke="#8B5CF6" strokeWidth="2" strokeLinecap="round"/>
+              <path d="M75 80H85" stroke="#8B5CF6" strokeWidth="2" strokeLinecap="round"/>
+              <path d="M110 70C120 75 125 90 125 90" stroke="#8B5CF6" strokeWidth="2" strokeLinecap="round"/>
+              <path d="M50 70C40 75 35 90 35 90" stroke="#8B5CF6" strokeWidth="2" strokeLinecap="round"/>
+            </svg>
+          </div>
+        </div>
+      )}
+
+      {/* Prayer Tracker */}
+      <div className={`bg-white rounded-xl shadow-md p-4 mb-6 ${isMenstruationPhase ? "opacity-50" : ""}`}>
+        <h3 className="text-lg font-medium mb-3">Намаз</h3>
+        <div className="space-y-3">
+          <div className="flex justify-between items-center">
+            <div className="flex items-center">
+              <Switch
+                id="fajr"
+                checked={worshipData?.prayers?.fajr || false}
+                onCheckedChange={(checked) => handlePrayerChange("fajr", checked)}
+                disabled={isMenstruationPhase}
+              />
+              <Label htmlFor="fajr" className="ml-2 text-gray-700 cursor-pointer">
+                Фаджр
+              </Label>
+            </div>
+            <span className="text-sm text-gray-500">{prayerTimes?.fajr || "--:--"}</span>
+          </div>
+          <div className="flex justify-between items-center">
+            <div className="flex items-center">
+              <Switch
+                id="zuhr"
+                checked={worshipData?.prayers?.zuhr || false}
+                onCheckedChange={(checked) => handlePrayerChange("zuhr", checked)}
+                disabled={isMenstruationPhase}
+              />
+              <Label htmlFor="zuhr" className="ml-2 text-gray-700 cursor-pointer">
+                Зухр
+              </Label>
+            </div>
+            <span className="text-sm text-gray-500">{prayerTimes?.zuhr || "--:--"}</span>
+          </div>
+          <div className="flex justify-between items-center">
+            <div className="flex items-center">
+              <Switch
+                id="asr"
+                checked={worshipData?.prayers?.asr || false}
+                onCheckedChange={(checked) => handlePrayerChange("asr", checked)}
+                disabled={isMenstruationPhase}
+              />
+              <Label htmlFor="asr" className="ml-2 text-gray-700 cursor-pointer">
+                Аср
+              </Label>
+            </div>
+            <span className="text-sm text-gray-500">{prayerTimes?.asr || "--:--"}</span>
+          </div>
+          <div className="flex justify-between items-center">
+            <div className="flex items-center">
+              <Switch
+                id="maghrib"
+                checked={worshipData?.prayers?.maghrib || false}
+                onCheckedChange={(checked) => handlePrayerChange("maghrib", checked)}
+                disabled={isMenstruationPhase}
+              />
+              <Label htmlFor="maghrib" className="ml-2 text-gray-700 cursor-pointer">
+                Магриб
+              </Label>
+            </div>
+            <span className="text-sm text-gray-500">{prayerTimes?.maghrib || "--:--"}</span>
+          </div>
+          <div className="flex justify-between items-center">
+            <div className="flex items-center">
+              <Switch
+                id="isha"
+                checked={worshipData?.prayers?.isha || false}
+                onCheckedChange={(checked) => handlePrayerChange("isha", checked)}
+                disabled={isMenstruationPhase}
+              />
+              <Label htmlFor="isha" className="ml-2 text-gray-700 cursor-pointer">
+                Иша
+              </Label>
+            </div>
+            <span className="text-sm text-gray-500">{prayerTimes?.isha || "--:--"}</span>
+          </div>
+        </div>
+      </div>
+
+      {/* Other Worship Tracker */}
+      <div className={`bg-white rounded-xl shadow-md p-4 mb-6 ${isMenstruationPhase ? "opacity-50" : ""}`}>
+        <h3 className="text-lg font-medium mb-3">Другие поклонения</h3>
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <Label htmlFor="quran" className="text-gray-700">Чтение Корана</Label>
+            <div className="flex items-center">
+              <Input
+                id="quran"
+                type="number"
+                className="w-16 h-9 text-center"
+                placeholder="мин"
+                value={worshipData?.quranReading || ""}
+                onChange={(e) => handleQuranChange(parseInt(e.target.value) || 0)}
+                disabled={isMenstruationPhase}
+              />
+              <span className="ml-2 text-sm text-gray-500">мин</span>
+            </div>
+          </div>
+          <div className="flex items-center justify-between">
+            <Label htmlFor="dua" className="text-gray-700">Ду'а</Label>
+            <Switch
+              id="dua"
+              checked={worshipData?.dua || false}
+              onCheckedChange={handleDuaChange}
+              disabled={isMenstruationPhase}
+            />
+          </div>
+          <div className="flex items-center justify-between">
+            <Label htmlFor="sadaqa" className="text-gray-700">Садака</Label>
+            <Switch
+              id="sadaqa"
+              checked={worshipData?.sadaqa || false}
+              onCheckedChange={handleSadaqaChange}
+              disabled={isMenstruationPhase}
+            />
+          </div>
+          <div>
+            <Label className="text-gray-700 block mb-2">Пост</Label>
+            <RadioGroup
+              value={worshipData?.fast || "none"}
+              onValueChange={handleFastChange}
+              disabled={isMenstruationPhase}
+              className="flex flex-wrap gap-2"
+            >
+              <div className="flex items-center space-x-2">
+                <RadioGroupItem value="none" id="fast-none" />
+                <Label htmlFor="fast-none" className="text-sm">Нет</Label>
+              </div>
+              <div className="flex items-center space-x-2">
+                <RadioGroupItem value="fard" id="fast-fard" />
+                <Label htmlFor="fast-fard" className="text-sm">Обязательный</Label>
+              </div>
+              <div className="flex items-center space-x-2">
+                <RadioGroupItem value="nafl" id="fast-nafl" />
+                <Label htmlFor="fast-nafl" className="text-sm">Нафиля</Label>
+              </div>
+              <div className="flex items-center space-x-2">
+                <RadioGroupItem value="kada" id="fast-kada" />
+                <Label htmlFor="fast-kada" className="text-sm">Када</Label>
+              </div>
+            </RadioGroup>
+          </div>
+        </div>
+      </div>
+
+      {/* Day Note */}
+      <div className="bg-white rounded-xl shadow-md p-4 mb-4">
+        <h3 className="text-lg font-medium mb-2">Заметка к дню</h3>
+        <Textarea
+          className="w-full h-24 resize-none"
+          placeholder="Запиши свои мысли и чувства..."
+          value={worshipData?.note || ""}
+          onChange={(e) => handleNoteChange(e.target.value)}
+        />
+      </div>
+    </div>
+  );
+}

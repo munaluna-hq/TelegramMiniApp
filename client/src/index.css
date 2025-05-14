@@ -1,0 +1,119 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --background: 0 0% 100%;
+  --foreground: 20 14.3% 4.1%;
+  --muted: 60 4.8% 95.9%;
+  --muted-foreground: 25 5.3% 44.7%;
+  --popover: 0 0% 100%;
+  --popover-foreground: 20 14.3% 4.1%;
+  --card: 0 0% 100%;
+  --card-foreground: 20 14.3% 4.1%;
+  --border: 20 5.9% 90%;
+  --input: 20 5.9% 90%;
+  --primary: 262 83% 64%;
+  --primary-foreground: 211 100% 99%;
+  --secondary: 60 4.8% 95.9%;
+  --secondary-foreground: 24 9.8% 10%;
+  --accent: 60 4.8% 95.9%;
+  --accent-foreground: 24 9.8% 10%;
+  --destructive: 0 84.2% 60.2%;
+  --destructive-foreground: 60 9.1% 97.8%;
+  --ring: 20 14.3% 4.1%;
+  --radius: 0.5rem;
+  
+  /* Custom colors for menstrual phases */
+  --menstruation: 0 84% 70%;
+  --clean: 142 70% 45%;
+  --ovulation: 38 92% 50%;
+}
+
+.dark {
+  --background: 240 10% 3.9%;
+  --foreground: 0 0% 98%;
+  --muted: 240 3.7% 15.9%;
+  --muted-foreground: 240 5% 64.9%;
+  --popover: 240 10% 3.9%;
+  --popover-foreground: 0 0% 98%;
+  --card: 240 10% 3.9%;
+  --card-foreground: 0 0% 98%;
+  --border: 240 3.7% 15.9%;
+  --input: 240 3.7% 15.9%;
+  --primary: 262 83% 64%;
+  --primary-foreground: 211 100% 99%;
+  --secondary: 240 3.7% 15.9%;
+  --secondary-foreground: 0 0% 98%;
+  --accent: 240 3.7% 15.9%;
+  --accent-foreground: 0 0% 98%;
+  --destructive: 0 62.8% 30.6%;
+  --destructive-foreground: 0 0% 98%;
+  --ring: 240 4.9% 83.9%;
+  --radius: 0.5rem;
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply font-sans antialiased bg-background text-foreground;
+  }
+}
+
+/* Custom Colors */
+.bg-menstruation {
+  background-color: hsl(var(--menstruation));
+}
+
+.bg-clean {
+  background-color: hsl(var(--clean));
+}
+
+.bg-ovulation {
+  background-color: hsl(var(--ovulation));
+}
+
+.text-menstruation {
+  color: hsl(var(--menstruation));
+}
+
+.text-clean {
+  color: hsl(var(--clean));
+}
+
+.text-ovulation {
+  color: hsl(var(--ovulation));
+}
+
+.border-menstruation {
+  border-color: hsl(var(--menstruation));
+}
+
+.border-clean {
+  border-color: hsl(var(--clean));
+}
+
+.border-ovulation {
+  border-color: hsl(var(--ovulation));
+}
+
+@layer components {
+  .tab-active {
+    @apply text-primary;
+  }
+  
+  .tab-inactive {
+    @apply text-gray-500;
+  }
+  
+  .calendar-day {
+    @apply aspect-square flex flex-col items-center justify-center py-1 relative cursor-pointer hover:bg-gray-50 rounded-md transition;
+  }
+  
+  .phase-indicator {
+    @apply w-3 h-3 rounded-full mt-1;
+  }
+}
