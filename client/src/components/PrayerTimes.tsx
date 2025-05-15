@@ -1,8 +1,7 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, ReactNode } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { format } from 'date-fns';
 import { ru } from 'date-fns/locale';
-import { getQueryFn } from '@/lib/queryClient';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -20,10 +19,18 @@ interface PrayerTimesData {
   date: string;
 }
 
-export default function PrayerTimes() {
-  const [date, setDate] = useState(new Date());
-  const [currentTime, setCurrentTime] = useState('');
+// Prayer time item props
+interface PrayerTimeItemProps {
+  name: string;
+  time?: string;
+  icon: ReactNode;
+  color: string;
+}
 
+export default function PrayerTimes() {
+  const [date] = useState(new Date());
+  const [currentTime, setCurrentTime] = useState('');
+  
   // Update current time every minute
   useEffect(() => {
     const updateTime = () => {
@@ -43,19 +50,60 @@ export default function PrayerTimes() {
   const formattedDate = format(date, 'yyyy-MM-dd');
 
   // Fetch prayer times from API
-  const { data, isLoading, isError } = useQuery({
+  const { data, isLoading, isError } = useQuery<PrayerTimesData>({
     queryKey: ['/api/prayer-times', formattedDate],
-    queryFn: getQueryFn({
-      on401: "returnNull",
-      endpoint: `/api/prayer-times?date=${formattedDate}`,
-      method: "GET"
-    }),
+    queryFn: () => fetch(`/api/prayer-times?date=${formattedDate}`)
+      .then(res => {
+        if (!res.ok) throw new Error('Failed to fetch prayer times');
+        return res.json();
+      }),
   });
 
   // Check if a prayer time is current (within the current hour)
-  const isCurrentPrayer = (prayerTime: string): boolean => {
+  const isCurrentPrayer = (prayerTime?: string): boolean => {
     if (!currentTime || !prayerTime) return false;
     return prayerTime === currentTime.substring(0, 5);
+  };
+
+  // Helper function to render a prayer time item
+  const renderPrayerTimeItem = ({ name, time, icon, color }: PrayerTimeItemProps) => {
+    // Generate custom badge class based on the prayer time status
+    const getBadgeClass = () => {
+      if (isCurrentPrayer(time)) {
+        if (color === 'primary') return 'bg-primary text-white';
+        if (color === 'amber-500') return 'bg-amber-500 text-white';
+        if (color === 'sky-500') return 'bg-sky-500 text-white';
+        if (color === 'yellow-600') return 'bg-yellow-600 text-white';
+        if (color === 'orange-500') return 'bg-orange-500 text-white';
+        if (color === 'indigo-500') return 'bg-indigo-500 text-white';
+        if (color === 'slate-700') return 'bg-slate-700 text-white';
+        return 'bg-primary text-white';
+      } else {
+        if (color === 'primary') return 'bg-primary/10 text-primary';
+        if (color === 'amber-500') return 'bg-amber-500/10 text-amber-500';
+        if (color === 'sky-500') return 'bg-sky-500/10 text-sky-500';
+        if (color === 'yellow-600') return 'bg-yellow-600/10 text-yellow-600';
+        if (color === 'orange-500') return 'bg-orange-500/10 text-orange-500';
+        if (color === 'indigo-500') return 'bg-indigo-500/10 text-indigo-500';
+        if (color === 'slate-700') return 'bg-slate-700/10 text-slate-700';
+        return 'bg-primary/10 text-primary';
+      }
+    };
+      
+    return (
+      <div className="flex justify-between items-center">
+        <div className="flex items-center">
+          {icon}
+          <span className="text-sm">{name}</span>
+        </div>
+        <Badge 
+          variant={isCurrentPrayer(time) ? "default" : "outline"}
+          className={getBadgeClass()}
+        >
+          {time || '--:--'}
+        </Badge>
+      </div>
+    );
   };
 
   // Get next upcoming prayer
@@ -63,13 +111,13 @@ export default function PrayerTimes() {
     if (!data) return null;
     
     const prayerTimes = [
-      { name: 'Фаджр', time: data.fajr },
-      { name: 'Восход', time: data.sunrise },
-      { name: 'Зухр', time: data.zuhr },
-      { name: 'Аср', time: data.asr },
-      { name: 'Магриб', time: data.maghrib },
-      { name: 'Иша', time: data.isha },
-      { name: 'Полночь', time: data.midnight }
+      { name: 'Фаджр', time: data.fajr || '' },
+      { name: 'Восход', time: data.sunrise || '' },
+      { name: 'Зухр', time: data.zuhr || '' },
+      { name: 'Аср', time: data.asr || '' },
+      { name: 'Магриб', time: data.maghrib || '' },
+      { name: 'Иша', time: data.isha || '' },
+      { name: 'Полночь', time: data.midnight || '' }
     ];
     
     const currentHourMin = currentTime;
@@ -140,96 +188,59 @@ export default function PrayerTimes() {
             )}
             
             <div className="space-y-2">
-              <div className="flex justify-between items-center">
-                <div className="flex items-center">
-                  <Moon className="h-4 w-4 mr-1 text-primary" />
-                  <span className="text-sm">Фаджр</span>
-                </div>
-                <Badge 
-                  variant={isCurrentPrayer(data?.fajr) ? "default" : "outline"}
-                  className={isCurrentPrayer(data?.fajr) ? "bg-primary" : "bg-primary/10"}
-                >
-                  {data?.fajr}
-                </Badge>
-              </div>
-              
-              <div className="flex justify-between items-center">
-                <div className="flex items-center">
-                  <Sunrise className="h-4 w-4 mr-1 text-amber-500" />
-                  <span className="text-sm">Восход</span>
-                </div>
-                <Badge 
-                  variant={isCurrentPrayer(data?.sunrise) ? "default" : "outline"}
-                  className={isCurrentPrayer(data?.sunrise) ? "bg-amber-500" : "bg-amber-500/10"}
-                >
-                  {data?.sunrise}
-                </Badge>
-              </div>
-              
-              <div className="flex justify-between items-center">
-                <div className="flex items-center">
-                  <Clock className="h-4 w-4 mr-1 text-sky-500" />
-                  <span className="text-sm">Зухр</span>
-                </div>
-                <Badge 
-                  variant={isCurrentPrayer(data?.zuhr) ? "default" : "outline"}
-                  className={isCurrentPrayer(data?.zuhr) ? "bg-sky-500" : "bg-sky-500/10"}
-                >
-                  {data?.zuhr}
-                </Badge>
-              </div>
-              
-              <div className="flex justify-between items-center">
-                <div className="flex items-center">
-                  <Clock className="h-4 w-4 mr-1 text-yellow-600" />
-                  <span className="text-sm">Аср</span>
-                </div>
-                <Badge 
-                  variant={isCurrentPrayer(data?.asr) ? "default" : "outline"}
-                  className={isCurrentPrayer(data?.asr) ? "bg-yellow-600" : "bg-yellow-600/10"}
-                >
-                  {data?.asr}
-                </Badge>
-              </div>
-              
-              <div className="flex justify-between items-center">
-                <div className="flex items-center">
-                  <Sunset className="h-4 w-4 mr-1 text-orange-500" />
-                  <span className="text-sm">Магриб</span>
-                </div>
-                <Badge 
-                  variant={isCurrentPrayer(data?.maghrib) ? "default" : "outline"}
-                  className={isCurrentPrayer(data?.maghrib) ? "bg-orange-500" : "bg-orange-500/10"}
-                >
-                  {data?.maghrib}
-                </Badge>
-              </div>
-              
-              <div className="flex justify-between items-center">
-                <div className="flex items-center">
-                  <Moon className="h-4 w-4 mr-1 text-indigo-500" />
-                  <span className="text-sm">Иша</span>
-                </div>
-                <Badge 
-                  variant={isCurrentPrayer(data?.isha) ? "default" : "outline"}
-                  className={isCurrentPrayer(data?.isha) ? "bg-indigo-500" : "bg-indigo-500/10"}
-                >
-                  {data?.isha}
-                </Badge>
-              </div>
-              
-              <div className="flex justify-between items-center">
-                <div className="flex items-center">
-                  <Moon className="h-4 w-4 mr-1 text-slate-700" />
-                  <span className="text-sm">Полночь</span>
-                </div>
-                <Badge 
-                  variant={isCurrentPrayer(data?.midnight) ? "default" : "outline"}
-                  className={isCurrentPrayer(data?.midnight) ? "bg-slate-700" : "bg-slate-700/10"}
-                >
-                  {data?.midnight}
-                </Badge>
-              </div>
+              {/* Prayer time items */}
+              {data && (
+                <>
+                  {renderPrayerTimeItem({
+                    name: 'Фаджр', 
+                    time: data.fajr, 
+                    icon: <Moon className="h-4 w-4 mr-1 text-primary" />,
+                    color: 'primary'
+                  })}
+                  
+                  {renderPrayerTimeItem({
+                    name: 'Восход', 
+                    time: data.sunrise, 
+                    icon: <Sunrise className="h-4 w-4 mr-1 text-amber-500" />,
+                    color: 'amber-500'
+                  })}
+                  
+                  {renderPrayerTimeItem({
+                    name: 'Зухр', 
+                    time: data.zuhr, 
+                    icon: <Clock className="h-4 w-4 mr-1 text-sky-500" />,
+                    color: 'sky-500'
+                  })}
+                  
+                  {renderPrayerTimeItem({
+                    name: 'Аср', 
+                    time: data.asr, 
+                    icon: <Clock className="h-4 w-4 mr-1 text-yellow-600" />,
+                    color: 'yellow-600'
+                  })}
+                  
+                  {renderPrayerTimeItem({
+                    name: 'Магриб', 
+                    time: data.maghrib, 
+                    icon: <Sunset className="h-4 w-4 mr-1 text-orange-500" />,
+                    color: 'orange-500'
+                  })}
+                  
+                  {renderPrayerTimeItem({
+                    name: 'Иша', 
+                    time: data.isha, 
+                    icon: <Moon className="h-4 w-4 mr-1 text-indigo-500" />,
+                    color: 'indigo-500'
+                  })}
+                  
+                  {renderPrayerTimeItem({
+                    name: 'Полночь', 
+                    time: data.midnight, 
+                    icon: <Moon className="h-4 w-4 mr-1 text-slate-700" />,
+                    color: 'slate-700'
+                  })}
+                </>
+              )}
             </div>
           </>
         )}
