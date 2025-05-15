@@ -10,6 +10,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { MapPin, User, CheckCircle } from "lucide-react";
 import { getTelegramUser, showAlert } from "@/lib/telegram";
 import { useToast } from "@/hooks/use-toast";
+import { useGeolocation } from "@/hooks/use-geolocation";
 
 export default function Settings() {
   const { data: settings } = useQuery<any>({
@@ -134,21 +135,23 @@ export default function Settings() {
     updateSettingsMutation.mutate(formData);
   };
 
-  const handleDetectLocation = () => {
-    if (navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(
-        (position) => {
-          setFormData((prev) => ({
-            ...prev,
-            latitude: position.coords.latitude.toFixed(6),
-            longitude: position.coords.longitude.toFixed(6),
-          }));
-        },
-        (error) => {
-          console.error("Error getting location:", error);
-        }
-      );
+  // Use our custom geolocation hook
+  const { detectLocation, latitude, longitude, city, error, loading } = useGeolocation();
+  
+  // Effect to update form when geolocation is obtained
+  useEffect(() => {
+    if (latitude && longitude) {
+      setFormData(prev => ({
+        ...prev,
+        latitude,
+        longitude,
+        city: city || prev.city, // Use detected city or keep current one
+      }));
     }
+  }, [latitude, longitude, city]);
+  
+  const handleDetectLocation = () => {
+    detectLocation();
   };
 
   const telegramUser = getTelegramUser();

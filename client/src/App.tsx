@@ -8,6 +8,7 @@ import NotFound from "@/pages/not-found";
 import Home from "@/pages/Home";
 import { getTelegramUser } from "@/lib/telegram";
 import LoadingAnimation from "@/components/LoadingAnimation";
+import { useGeolocation } from "@/hooks/use-geolocation";
 
 function Router() {
   return (
@@ -54,6 +55,18 @@ function App() {
   const handleAnimationComplete = () => {
     setShowSplash(false);
   };
+
+  // Initialize geolocation hook
+  const geolocation = useGeolocation();
+  
+  // Effect to detect location after authentication
+  useEffect(() => {
+    if (isAuthenticated && !showSplash) {
+      // Automatic geolocation detection
+      console.log("Detecting user location...");
+      geolocation.detectLocation();
+    }
+  }, [isAuthenticated, showSplash]);
 
   // Show loading animation on launch
   if (showSplash) {
