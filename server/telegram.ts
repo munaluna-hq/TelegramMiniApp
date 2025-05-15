@@ -49,41 +49,34 @@ interface DevNotification {
 
 const devModeNotifications: DevNotification[] = [];
 
-// Check if we're in development mode
-const isDevelopmentMode = process.env.NODE_ENV === 'development';
-
 // Send notification via Telegram Bot API
 export async function sendTelegramNotification(telegramId: string, message: string): Promise<boolean> {
   try {
-    // In development mode, store the notification for in-app display
-    if (isDevelopmentMode) {
-      console.log(`[DEV MODE] Storing notification: ${message}`);
-      
-      // Strip HTML tags for cleaner display in dev mode
-      const cleanMessage = message.replace(/<\/?[^>]+(>|$)/g, "");
-      
-      // Store the notification
-      devModeNotifications.push({
-        message: cleanMessage,
-        timestamp: Date.now()
-      });
-      
-      // Limit the number of stored notifications to prevent memory issues
-      if (devModeNotifications.length > 50) {
-        devModeNotifications.shift();
-      }
-      
-      return true;
+    // First, store the notification for development mode display
+    // (this will work in both dev and production, providing a backup log)
+    console.log(`Notification to user ${telegramId}: ${message}`);
+    
+    // Strip HTML tags for cleaner display in dev mode
+    const cleanMessage = message.replace(/<\/?[^>]+(>|$)/g, "");
+    
+    // Store the notification
+    devModeNotifications.push({
+      message: cleanMessage,
+      timestamp: Date.now()
+    });
+    
+    // Limit the number of stored notifications to prevent memory issues
+    if (devModeNotifications.length > 50) {
+      devModeNotifications.shift();
     }
     
-    // In production mode, actually send the notification
+    // Now try to send the actual Telegram notification
     if (!process.env.TELEGRAM_BOT_TOKEN) {
       console.error("Telegram bot token not configured");
       return false;
     }
     
-    console.log(`Attempting to send Telegram notification to user ID: ${telegramId}`);
-    
+    // Make the API call to Telegram
     const apiUrl = `https://api.telegram.org/bot${process.env.TELEGRAM_BOT_TOKEN}/sendMessage`;
     
     const requestBody = {
@@ -91,6 +84,9 @@ export async function sendTelegramNotification(telegramId: string, message: stri
       text: message,
       parse_mode: "HTML"
     };
+    
+    console.log(`Sending Telegram API request to: ${apiUrl}`);
+    console.log(`With payload: ${JSON.stringify(requestBody)}`);
     
     const response = await fetch(apiUrl, {
       method: "POST",
@@ -104,6 +100,8 @@ export async function sendTelegramNotification(telegramId: string, message: stri
     
     if (!data.ok) {
       console.error(`Telegram API error: ${data.description}`);
+    } else {
+      console.log(`Telegram notification successfully sent to user ${telegramId}`);
     }
     
     return data.ok === true;

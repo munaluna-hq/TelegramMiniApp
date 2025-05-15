@@ -4,7 +4,7 @@ import { storage } from "./storage";
 import { addDays, format, parseISO } from "date-fns";
 import { z } from "zod";
 import { getPrayerTimes } from "./prayerTimes";
-import { verifyTelegramData } from "./telegram";
+import { verifyTelegramData, getDevModeNotifications } from "./telegram";
 import { calculateCycleDays } from "../client/src/lib/cycleCalculations";
 import { 
   setupPrayerNotifications, 
@@ -320,7 +320,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   if (process.env.NODE_ENV === 'development') {
     // API endpoint to get development mode notifications
     apiRouter.get("/dev-notifications", (_req: Request, res: Response) => {
-      const { getDevModeNotifications } = require("./telegram");
+      // Import directly from the telegram module we already imported above
       return res.json({ notifications: getDevModeNotifications() });
     });
   }

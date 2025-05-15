@@ -93,10 +93,10 @@ function App() {
   if (!isAuthenticated) {
     // Create a mock user for development testing
     const mockTelegramUser = {
-      id: 12345,
-      first_name: "Test",
-      last_name: "User",
-      username: "testuser",
+      id: 123456789,
+      first_name: "Guljan",
+      last_name: "",
+      username: "iamguljan",
       auth_date: Math.floor(Date.now() / 1000)
     };
     
