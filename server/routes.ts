@@ -231,6 +231,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       await storage.saveWorship(userId, new Date(date), worshipData);
       
+      // Send notification about worship data update
+      await sendTrackerUpdateNotification(userId, new Date(date), worshipData);
+      
       return res.status(200).json({ message: "Worship data saved successfully" });
     } catch (error) {
       console.error("Error saving worship data:", error);
@@ -294,6 +297,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       await storage.saveSettings(userId, settingsData);
       
+      // Send a notification about settings update
+      await sendSettingsUpdateNotification(userId, settingsData);
+      
       return res.status(200).json({ message: "Settings saved successfully" });
     } catch (error) {
       console.error("Error saving settings:", error);
@@ -301,8 +307,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
-  // Set up scheduled task for prayer notifications
-  setupPrayerNotifications();
+  // Set up scheduled task for all notifications
+  initializeNotificationServices();
 
   // Register API routes
   app.use("/api", apiRouter);
