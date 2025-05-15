@@ -18,8 +18,25 @@ export default function DailyTracker() {
   const [currentDate, setCurrentDate] = useState<Date>(new Date());
   const { toast } = useToast();
   
+  // Define type for form data
+  interface WorshipFormData {
+    prayers: {
+      fajr: boolean;
+      zuhr: boolean;
+      asr: boolean;
+      maghrib: boolean;
+      isha: boolean;
+      [key: string]: boolean;
+    };
+    quranReading: number;
+    dua: boolean;
+    sadaqa: boolean;
+    fast: "none" | "fard" | "nafl" | "kada";
+    note: string;
+  }
+  
   // Track form data locally with state
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<WorshipFormData>({
     prayers: {
       fajr: false,
       zuhr: false,
@@ -55,25 +72,10 @@ export default function DailyTracker() {
     queryKey: ['/api/prayer-times', format(currentDate, 'yyyy-MM-dd')],
   });
 
-  // Define types for the worship data
-  interface WorshipData {
-    prayers: {
-      fajr: boolean;
-      zuhr: boolean;
-      asr: boolean;
-      maghrib: boolean;
-      isha: boolean;
-      [key: string]: boolean;
-    };
-    quranReading: number;
-    dua: boolean;
-    sadaqa: boolean;
-    fast: "none" | "fard" | "nafl" | "kada";
-    note: string;
-  }
+  // We're using WorshipFormData defined above for both the form and API data
 
-  // Fetch daily worship data
-  const { data: worshipData, isLoading: isLoadingWorship } = useQuery<WorshipData>({
+  // Fetch daily worship data - use our same type as the form data
+  const { data: worshipData, isLoading: isLoadingWorship } = useQuery<WorshipFormData>({
     queryKey: ['/api/worship', format(currentDate, 'yyyy-MM-dd')],
     queryFn: async () => {
       try {
@@ -82,9 +84,25 @@ export default function DailyTracker() {
           throw new Error("Failed to fetch worship data");
         }
         const data = await response.json();
-        return data as WorshipData;
+        // Make sure we have a properly formed prayers object
+        const result: WorshipFormData = {
+          prayers: {
+            fajr: data?.prayers?.fajr || false,
+            zuhr: data?.prayers?.zuhr || false,
+            asr: data?.prayers?.asr || false,
+            maghrib: data?.prayers?.maghrib || false,
+            isha: data?.prayers?.isha || false
+          },
+          quranReading: data?.quranReading || 0,
+          dua: data?.dua || false,
+          sadaqa: data?.sadaqa || false,
+          fast: (data?.fast as "none" | "fard" | "nafl" | "kada") || "none",
+          note: data?.note || ""
+        };
+        return result;
       } catch (error) {
         console.error("Error fetching worship data:", error);
+        // Return default empty data
         return {
           prayers: {
             fajr: false,
@@ -320,7 +338,7 @@ export default function DailyTracker() {
             <div className="flex items-center">
               <Switch
                 id="asr"
-                checked={worshipData?.prayers?.asr || false}
+                checked={formData.prayers.asr}
                 onCheckedChange={(checked) => handlePrayerChange("asr", checked)}
                 disabled={isMenstruationPhase}
               />
@@ -334,7 +352,7 @@ export default function DailyTracker() {
             <div className="flex items-center">
               <Switch
                 id="maghrib"
-                checked={worshipData?.prayers?.maghrib || false}
+                checked={formData.prayers.maghrib}
                 onCheckedChange={(checked) => handlePrayerChange("maghrib", checked)}
                 disabled={isMenstruationPhase}
               />
@@ -348,7 +366,7 @@ export default function DailyTracker() {
             <div className="flex items-center">
               <Switch
                 id="isha"
-                checked={worshipData?.prayers?.isha || false}
+                checked={formData.prayers.isha}
                 onCheckedChange={(checked) => handlePrayerChange("isha", checked)}
                 disabled={isMenstruationPhase}
               />
@@ -373,7 +391,7 @@ export default function DailyTracker() {
                 type="number"
                 className="w-16 h-9 text-center"
                 placeholder="мин"
-                value={worshipData?.quranReading || ""}
+                value={formData.quranReading || ""}
                 onChange={(e) => handleQuranChange(parseInt(e.target.value) || 0)}
                 disabled={isMenstruationPhase}
               />
@@ -384,7 +402,7 @@ export default function DailyTracker() {
             <Label htmlFor="dua" className="text-gray-700">Ду'а</Label>
             <Switch
               id="dua"
-              checked={worshipData?.dua || false}
+              checked={formData.dua}
               onCheckedChange={handleDuaChange}
               disabled={isMenstruationPhase}
             />
@@ -393,7 +411,7 @@ export default function DailyTracker() {
             <Label htmlFor="sadaqa" className="text-gray-700">Садака</Label>
             <Switch
               id="sadaqa"
-              checked={worshipData?.sadaqa || false}
+              checked={formData.sadaqa}
               onCheckedChange={handleSadaqaChange}
               disabled={isMenstruationPhase}
             />
@@ -401,7 +419,7 @@ export default function DailyTracker() {
           <div>
             <Label className="text-gray-700 block mb-2">Пост</Label>
             <RadioGroup
-              value={worshipData?.fast || "none"}
+              value={formData.fast}
               onValueChange={handleFastChange}
               disabled={isMenstruationPhase}
               className="flex flex-wrap gap-2"
