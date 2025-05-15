@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { useState, useEffect } from "react";
+import { ChevronLeft, ChevronRight, Save, Loader2 } from "lucide-react";
 import { format, addDays, subDays, isSameDay } from "date-fns";
 import { ru } from "date-fns/locale";
 import { useQuery, useMutation } from "@tanstack/react-query";
@@ -11,12 +11,42 @@ import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Button } from "@/components/ui/button";
+import { useToast } from "@/hooks/use-toast";
 
 export default function DailyTracker() {
   const [currentDate, setCurrentDate] = useState<Date>(new Date());
+  const { toast } = useToast();
+  
+  // Track form data locally with state
+  const [formData, setFormData] = useState({
+    prayers: {
+      fajr: false,
+      zuhr: false,
+      asr: false,
+      maghrib: false,
+      isha: false
+    },
+    quranReading: 0,
+    dua: false,
+    sadaqa: false,
+    fast: "none" as "none" | "fard" | "nafl" | "kada",
+    note: ""
+  });
+  
+  // Define types for the cycle data
+  interface CycleDay {
+    id: number;
+    userId: number;
+    date: string;
+    phase: string;
+    cycleDuration?: number;
+    menstruationDuration?: number;
+    ovulationDate?: string;
+  }
 
   // Fetch cycle data to determine phase
-  const { data: cycleData } = useQuery({
+  const { data: cycleData } = useQuery<CycleDay[]>({
     queryKey: ['/api/cycles'],
   });
 
@@ -25,10 +55,89 @@ export default function DailyTracker() {
     queryKey: ['/api/prayer-times', format(currentDate, 'yyyy-MM-dd')],
   });
 
+  // Define types for the worship data
+  interface WorshipData {
+    prayers: {
+      fajr: boolean;
+      zuhr: boolean;
+      asr: boolean;
+      maghrib: boolean;
+      isha: boolean;
+      [key: string]: boolean;
+    };
+    quranReading: number;
+    dua: boolean;
+    sadaqa: boolean;
+    fast: "none" | "fard" | "nafl" | "kada";
+    note: string;
+  }
+
   // Fetch daily worship data
-  const { data: worshipData } = useQuery({
+  const { data: worshipData, isLoading: isLoadingWorship } = useQuery<WorshipData>({
     queryKey: ['/api/worship', format(currentDate, 'yyyy-MM-dd')],
+    queryFn: async () => {
+      try {
+        const response = await fetch(`/api/worship?date=${format(currentDate, 'yyyy-MM-dd')}`);
+        if (!response.ok) {
+          throw new Error("Failed to fetch worship data");
+        }
+        const data = await response.json();
+        return data as WorshipData;
+      } catch (error) {
+        console.error("Error fetching worship data:", error);
+        return {
+          prayers: {
+            fajr: false,
+            zuhr: false,
+            asr: false,
+            maghrib: false,
+            isha: false
+          },
+          quranReading: 0,
+          dua: false,
+          sadaqa: false,
+          fast: "none" as const,
+          note: ""
+        };
+      }
+    }
   });
+
+  // Update form data when worship data changes or date changes
+  useEffect(() => {
+    if (worshipData) {
+      setFormData({
+        prayers: worshipData.prayers || {
+          fajr: false,
+          zuhr: false,
+          asr: false,
+          maghrib: false,
+          isha: false
+        },
+        quranReading: worshipData.quranReading || 0,
+        dua: worshipData.dua || false,
+        sadaqa: worshipData.sadaqa || false,
+        fast: worshipData.fast || "none",
+        note: worshipData.note || ""
+      });
+    } else {
+      // Reset form when no data is available
+      setFormData({
+        prayers: {
+          fajr: false,
+          zuhr: false,
+          asr: false,
+          maghrib: false,
+          isha: false
+        },
+        quranReading: 0,
+        dua: false,
+        sadaqa: false,
+        fast: "none",
+        note: ""
+      });
+    }
+  }, [worshipData, currentDate]);
 
   // Save worship data mutation
   const saveWorshipMutation = useMutation({
@@ -39,8 +148,23 @@ export default function DailyTracker() {
       });
     },
     onSuccess: () => {
+      toast({
+        title: "✅ Сохранено",
+        description: "Данные успешно сохранены",
+        variant: "default",
+        duration: 3000,
+      });
       queryClient.invalidateQueries({ queryKey: ['/api/worship', format(currentDate, 'yyyy-MM-dd')] });
     },
+    onError: (error) => {
+      console.error("Error saving worship data:", error);
+      toast({
+        title: "❌ Ошибка",
+        description: "Не удалось сохранить данные",
+        variant: "destructive",
+        duration: 3000,
+      });
+    }
   });
 
   const handlePrevDay = () => {
@@ -52,74 +176,52 @@ export default function DailyTracker() {
   };
 
   const handlePrayerChange = (prayer: string, value: boolean) => {
-    const updatedPrayers = {
-      ...(worshipData?.prayers || {}),
-      [prayer]: value
-    };
-    
-    saveWorshipMutation.mutate({
-      prayers: updatedPrayers,
-      quranReading: worshipData?.quranReading || 0,
-      dua: worshipData?.dua || false,
-      sadaqa: worshipData?.sadaqa || false,
-      fast: worshipData?.fast || "none",
-      note: worshipData?.note || ""
-    });
+    setFormData(prev => ({
+      ...prev,
+      prayers: {
+        ...prev.prayers,
+        [prayer]: value
+      }
+    }));
   };
 
   const handleQuranChange = (minutes: number) => {
-    saveWorshipMutation.mutate({
-      prayers: worshipData?.prayers || {},
-      quranReading: minutes,
-      dua: worshipData?.dua || false,
-      sadaqa: worshipData?.sadaqa || false,
-      fast: worshipData?.fast || "none",
-      note: worshipData?.note || ""
-    });
+    setFormData(prev => ({
+      ...prev,
+      quranReading: minutes
+    }));
   };
 
   const handleDuaChange = (value: boolean) => {
-    saveWorshipMutation.mutate({
-      prayers: worshipData?.prayers || {},
-      quranReading: worshipData?.quranReading || 0,
-      dua: value,
-      sadaqa: worshipData?.sadaqa || false,
-      fast: worshipData?.fast || "none",
-      note: worshipData?.note || ""
-    });
+    setFormData(prev => ({
+      ...prev,
+      dua: value
+    }));
   };
 
   const handleSadaqaChange = (value: boolean) => {
-    saveWorshipMutation.mutate({
-      prayers: worshipData?.prayers || {},
-      quranReading: worshipData?.quranReading || 0,
-      dua: worshipData?.dua || false,
-      sadaqa: value,
-      fast: worshipData?.fast || "none",
-      note: worshipData?.note || ""
-    });
+    setFormData(prev => ({
+      ...prev,
+      sadaqa: value
+    }));
   };
 
   const handleFastChange = (value: string) => {
-    saveWorshipMutation.mutate({
-      prayers: worshipData?.prayers || {},
-      quranReading: worshipData?.quranReading || 0,
-      dua: worshipData?.dua || false,
-      sadaqa: worshipData?.sadaqa || false,
-      fast: value,
-      note: worshipData?.note || ""
-    });
+    setFormData(prev => ({
+      ...prev,
+      fast: value as "none" | "fard" | "nafl" | "kada"
+    }));
   };
 
   const handleNoteChange = (value: string) => {
-    saveWorshipMutation.mutate({
-      prayers: worshipData?.prayers || {},
-      quranReading: worshipData?.quranReading || 0,
-      dua: worshipData?.dua || false,
-      sadaqa: worshipData?.sadaqa || false,
-      fast: worshipData?.fast || "none",
+    setFormData(prev => ({
+      ...prev,
       note: value
-    });
+    }));
+  };
+  
+  const handleSaveData = () => {
+    saveWorshipMutation.mutate(formData);
   };
 
   // Determine if the current day is in menstruation phase
@@ -190,7 +292,7 @@ export default function DailyTracker() {
             <div className="flex items-center">
               <Switch
                 id="fajr"
-                checked={worshipData?.prayers?.fajr || false}
+                checked={formData.prayers.fajr}
                 onCheckedChange={(checked) => handlePrayerChange("fajr", checked)}
                 disabled={isMenstruationPhase}
               />
@@ -204,7 +306,7 @@ export default function DailyTracker() {
             <div className="flex items-center">
               <Switch
                 id="zuhr"
-                checked={worshipData?.prayers?.zuhr || false}
+                checked={formData.prayers.zuhr}
                 onCheckedChange={(checked) => handlePrayerChange("zuhr", checked)}
                 disabled={isMenstruationPhase}
               />
@@ -331,9 +433,30 @@ export default function DailyTracker() {
         <Textarea
           className="w-full h-24 resize-none"
           placeholder="Запиши свои мысли и чувства..."
-          value={worshipData?.note || ""}
+          value={formData.note}
           onChange={(e) => handleNoteChange(e.target.value)}
         />
+      </div>
+      
+      {/* Save Button */}
+      <div className="flex justify-center mt-6 mb-4">
+        <Button 
+          onClick={handleSaveData} 
+          disabled={saveWorshipMutation.isPending || isMenstruationPhase}
+          className="w-full bg-primary hover:bg-primary/90 text-white"
+        >
+          {saveWorshipMutation.isPending ? (
+            <>
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" /> 
+              Сохранение...
+            </>
+          ) : (
+            <>
+              <Save className="mr-2 h-4 w-4" /> 
+              Сохранить
+            </>
+          )}
+        </Button>
       </div>
     </div>
   );
