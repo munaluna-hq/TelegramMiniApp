@@ -49,22 +49,33 @@ export async function sendTelegramNotification(telegramId: string, message: stri
       return false;
     }
     
-    const response = await fetch(
-      `https://api.telegram.org/bot${process.env.TELEGRAM_BOT_TOKEN}/sendMessage`,
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          chat_id: telegramId,
-          text: message,
-          parse_mode: "HTML"
-        }),
-      }
-    );
+    console.log(`Attempting to send Telegram notification to user ID: ${telegramId}`);
+    
+    const apiUrl = `https://api.telegram.org/bot${process.env.TELEGRAM_BOT_TOKEN}/sendMessage`;
+    console.log(`Using API URL: ${apiUrl}`);
+    
+    const requestBody = {
+      chat_id: telegramId,
+      text: message,
+      parse_mode: "HTML"
+    };
+    console.log(`Request payload: ${JSON.stringify(requestBody, null, 2)}`);
+    
+    const response = await fetch(apiUrl, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(requestBody),
+    });
     
     const data = await response.json();
+    console.log(`Telegram API response: ${JSON.stringify(data)}`);
+    
+    if (!data.ok) {
+      console.error(`Telegram API error: ${data.description}`);
+    }
+    
     return data.ok === true;
   } catch (error) {
     console.error("Error sending Telegram notification:", error);
