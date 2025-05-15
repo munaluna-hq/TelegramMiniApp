@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { MapPin, User, CheckCircle } from "lucide-react";
+import { MapPin, User, CheckCircle, Bell } from "lucide-react";
 import { getTelegramUser, showAlert } from "@/lib/telegram";
 import { useToast } from "@/hooks/use-toast";
 import { useGeolocation } from "@/hooks/use-geolocation";
@@ -18,6 +18,10 @@ export default function Settings() {
   });
   
   const { toast } = useToast();
+  
+  // Track notification test status
+  const [isSendingTestNotification, setIsSendingTestNotification] = useState(false);
+  const [telegramHandle, setTelegramHandle] = useState('@iamguljan');
 
   const [formData, setFormData] = useState({
     city: "",

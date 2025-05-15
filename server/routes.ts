@@ -14,6 +14,7 @@ import {
   sendCycleUpdateNotification,
   sendPhaseUpdateNotification 
 } from "./notifications";
+import { sendDirectTestNotification } from "./directNotify";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Create API router
@@ -322,6 +323,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
     apiRouter.get("/dev-notifications", (_req: Request, res: Response) => {
       // Import directly from the telegram module we already imported above
       return res.json({ notifications: getDevModeNotifications() });
+    });
+    
+    // API endpoint to send test notifications directly to a user
+    apiRouter.post("/send-test-notification", async (req: Request, res: Response) => {
+      try {
+        const { telegramId } = req.body;
+        
+        if (!telegramId) {
+          return res.status(400).json({ message: "Telegram ID is required" });
+        }
+        
+        // Send test notification
+        const result = await sendDirectTestNotification(telegramId);
+        
+        if (result) {
+          return res.json({ success: true, message: "Test notification sent successfully" });
+        } else {
+          return res.status(500).json({ success: false, message: "Failed to send test notification" });
+        }
+      } catch (error) {
+        console.error("Error sending test notification:", error);
+        return res.status(500).json({ message: "Server error while sending test notification" });
+      }
     });
   }
 
