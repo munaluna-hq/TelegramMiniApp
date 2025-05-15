@@ -7,13 +7,16 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { MapPin, User } from "lucide-react";
-import { getTelegramUser } from "@/lib/telegram";
+import { MapPin, User, CheckCircle } from "lucide-react";
+import { getTelegramUser, showAlert } from "@/lib/telegram";
+import { useToast } from "@/hooks/use-toast";
 
 export default function Settings() {
-  const { data: settings } = useQuery({
+  const { data: settings } = useQuery<any>({
     queryKey: ['/api/settings'],
   });
+  
+  const { toast } = useToast();
 
   const [formData, setFormData] = useState({
     city: "",
@@ -29,31 +32,70 @@ export default function Settings() {
     cycleDays: 28
   });
 
+  // Define interface for settings
+  interface UserSettings {
+    id?: number;
+    userId?: number;
+    city?: string;
+    latitude?: string;
+    longitude?: string;
+    notificationTime?: string;
+    notifyFajr?: boolean;
+    notifyZuhr?: boolean;
+    notifyAsr?: boolean;
+    notifyMaghrib?: boolean;
+    notifyIsha?: boolean;
+    menstruationDays?: number;
+    cycleDays?: number;
+  }
+
   // Update form data when settings are loaded
   useEffect(() => {
     if (settings) {
+      const userSettings = settings as UserSettings;
       setFormData({
-        city: settings.city || "",
-        latitude: settings.latitude || "",
-        longitude: settings.longitude || "",
-        notificationTime: settings.notificationTime || "exact",
-        notifyFajr: settings.notifyFajr || false,
-        notifyZuhr: settings.notifyZuhr || true,
-        notifyAsr: settings.notifyAsr || true,
-        notifyMaghrib: settings.notifyMaghrib || true,
-        notifyIsha: settings.notifyIsha || true,
-        menstruationDays: settings.menstruationDays || 5,
-        cycleDays: settings.cycleDays || 28
+        city: userSettings.city || "",
+        latitude: userSettings.latitude || "",
+        longitude: userSettings.longitude || "",
+        notificationTime: userSettings.notificationTime || "exact",
+        notifyFajr: userSettings.notifyFajr || false,
+        notifyZuhr: userSettings.notifyZuhr || true,
+        notifyAsr: userSettings.notifyAsr || true,
+        notifyMaghrib: userSettings.notifyMaghrib || true,
+        notifyIsha: userSettings.notifyIsha || true,
+        menstruationDays: userSettings.menstruationDays || 5,
+        cycleDays: userSettings.cycleDays || 28
       });
     }
   }, [settings]);
 
   const updateSettingsMutation = useMutation({
-    mutationFn: async (data: any) => {
+    mutationFn: async (data: UserSettings) => {
       return apiRequest("POST", "/api/settings", data);
     },
     onSuccess: () => {
+      // Show success notification
+      toast({
+        title: "Настройки сохранены",
+        description: "Ваши настройки успешно сохранены.",
+        variant: "default",
+        duration: 3000,
+      });
+      
+      // Also show a native Telegram notification if available
+      showAlert("Настройки успешно сохранены");
+      
+      // Refresh settings data
       queryClient.invalidateQueries({ queryKey: ['/api/settings'] });
+    },
+    onError: (error) => {
+      toast({
+        title: "Ошибка",
+        description: "Не удалось сохранить настройки. Пожалуйста, попробуйте еще раз.",
+        variant: "destructive",
+        duration: 3000,
+      });
+      console.error("Failed to save settings:", error);
     },
   });
 
@@ -290,8 +332,25 @@ export default function Settings() {
         </div>
 
         {/* Save Button */}
-        <Button type="submit" className="w-full mb-4">
-          Сохранить настройки
+        <Button 
+          type="submit" 
+          className="w-full mb-4"
+          disabled={updateSettingsMutation.isPending}
+        >
+          {updateSettingsMutation.isPending ? (
+            <span className="flex items-center">
+              <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+              </svg>
+              Сохранение...
+            </span>
+          ) : (
+            <span className="flex items-center">
+              <CheckCircle className="h-4 w-4 mr-2" />
+              Сохранить настройки
+            </span>
+          )}
         </Button>
       </form>
     </div>
