@@ -1,5 +1,6 @@
 import { ReactNode, useState } from "react";
 import { Calendar, ListTodo, Settings as SettingsIcon } from "lucide-react";
+import DeveloperNotifications from "./DeveloperNotifications";
 
 interface LayoutProps {
   children: ReactNode;
@@ -8,6 +9,8 @@ interface LayoutProps {
 }
 
 export default function Layout({ children, activeTab, setActiveTab }: LayoutProps) {
+  // Check if we're in development mode
+  const isDev = import.meta.env.DEV;
   return (
     <div className="max-w-md mx-auto min-h-screen flex flex-col pb-20">
       {/* Header */}
@@ -59,6 +62,9 @@ export default function Layout({ children, activeTab, setActiveTab }: LayoutProp
           <span className="text-xs mt-1">Настройки</span>
         </button>
       </nav>
+      
+      {/* Development mode notification handler */}
+      {isDev && <DeveloperNotifications />}
     </div>
   );
 }

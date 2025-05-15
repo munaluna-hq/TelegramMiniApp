@@ -41,9 +41,42 @@ export function verifyTelegramData(initData: string, botToken: string): boolean 
   }
 }
 
+// Store for development mode notifications
+interface DevNotification {
+  message: string;
+  timestamp: number;
+}
+
+const devModeNotifications: DevNotification[] = [];
+
+// Check if we're in development mode
+const isDevelopmentMode = process.env.NODE_ENV === 'development';
+
 // Send notification via Telegram Bot API
 export async function sendTelegramNotification(telegramId: string, message: string): Promise<boolean> {
   try {
+    // In development mode, store the notification for in-app display
+    if (isDevelopmentMode) {
+      console.log(`[DEV MODE] Storing notification: ${message}`);
+      
+      // Strip HTML tags for cleaner display in dev mode
+      const cleanMessage = message.replace(/<\/?[^>]+(>|$)/g, "");
+      
+      // Store the notification
+      devModeNotifications.push({
+        message: cleanMessage,
+        timestamp: Date.now()
+      });
+      
+      // Limit the number of stored notifications to prevent memory issues
+      if (devModeNotifications.length > 50) {
+        devModeNotifications.shift();
+      }
+      
+      return true;
+    }
+    
+    // In production mode, actually send the notification
     if (!process.env.TELEGRAM_BOT_TOKEN) {
       console.error("Telegram bot token not configured");
       return false;
@@ -52,14 +85,12 @@ export async function sendTelegramNotification(telegramId: string, message: stri
     console.log(`Attempting to send Telegram notification to user ID: ${telegramId}`);
     
     const apiUrl = `https://api.telegram.org/bot${process.env.TELEGRAM_BOT_TOKEN}/sendMessage`;
-    console.log(`Using API URL: ${apiUrl}`);
     
     const requestBody = {
       chat_id: telegramId,
       text: message,
       parse_mode: "HTML"
     };
-    console.log(`Request payload: ${JSON.stringify(requestBody, null, 2)}`);
     
     const response = await fetch(apiUrl, {
       method: "POST",
@@ -69,8 +100,7 @@ export async function sendTelegramNotification(telegramId: string, message: stri
       body: JSON.stringify(requestBody),
     });
     
-    const data = await response.json();
-    console.log(`Telegram API response: ${JSON.stringify(data)}`);
+    const data = await response.json() as any;
     
     if (!data.ok) {
       console.error(`Telegram API error: ${data.description}`);
@@ -81,4 +111,9 @@ export async function sendTelegramNotification(telegramId: string, message: stri
     console.error("Error sending Telegram notification:", error);
     return false;
   }
+}
+
+// Function to get development mode notifications
+export function getDevModeNotifications(): DevNotification[] {
+  return [...devModeNotifications];
 }

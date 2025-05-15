@@ -316,6 +316,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Set up scheduled task for all notifications
   initializeNotificationServices();
 
+  // Development-only routes
+  if (process.env.NODE_ENV === 'development') {
+    // API endpoint to get development mode notifications
+    apiRouter.get("/dev-notifications", (_req: Request, res: Response) => {
+      const { getDevModeNotifications } = require("./telegram");
+      return res.json({ notifications: getDevModeNotifications() });
+    });
+  }
+
   // Register API routes
   app.use("/api", apiRouter);
 
