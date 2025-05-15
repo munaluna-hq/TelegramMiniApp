@@ -84,9 +84,24 @@ export function closeWebApp(): void {
 
 // Show an alert via Telegram's native UI
 export function showAlert(message: string): void {
-  if (window.Telegram && window.Telegram.WebApp) {
-    window.Telegram.WebApp.showAlert(message);
-  } else {
-    alert(message);
+  try {
+    if (window.Telegram && window.Telegram.WebApp) {
+      // Try to use the Telegram popup if available
+      if (typeof window.Telegram.WebApp.showPopup === 'function') {
+        window.Telegram.WebApp.showPopup({
+          title: 'Уведомление',
+          message: message,
+          buttons: [{ type: 'default', text: 'ОК' }]
+        });
+      } else {
+        // Fallback to regular alert for development or if showPopup is not available
+        console.log('Telegram notification (simulated):', message);
+      }
+    } else {
+      // Fallback for non-Telegram environments
+      console.log('Telegram notification (simulated):', message);
+    }
+  } catch (error) {
+    console.warn('Error showing Telegram alert:', error);
   }
 }

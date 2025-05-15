@@ -74,23 +74,23 @@ export default function Settings() {
       return apiRequest("POST", "/api/settings", data);
     },
     onSuccess: () => {
-      // Show success notification
+      // Always show toast notification since it's more reliable
       toast({
-        title: "Настройки сохранены",
+        title: "✅ Настройки сохранены",
         description: "Ваши настройки успешно сохранены.",
         variant: "default",
         duration: 3000,
       });
       
-      // Also show a native Telegram notification if available
-      showAlert("Настройки успешно сохранены");
+      // Log success message in development
+      console.log("Settings saved successfully");
       
       // Refresh settings data
       queryClient.invalidateQueries({ queryKey: ['/api/settings'] });
     },
     onError: (error) => {
       toast({
-        title: "Ошибка",
+        title: "❌ Ошибка",
         description: "Не удалось сохранить настройки. Пожалуйста, попробуйте еще раз.",
         variant: "destructive",
         duration: 3000,
