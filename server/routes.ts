@@ -4,9 +4,16 @@ import { storage } from "./storage";
 import { addDays, format, parseISO } from "date-fns";
 import { z } from "zod";
 import { getPrayerTimes } from "./prayerTimes";
-import { sendTelegramNotification, verifyTelegramData } from "./telegram";
+import { verifyTelegramData } from "./telegram";
 import { calculateCycleDays } from "../client/src/lib/cycleCalculations";
-import * as cron from "node-cron";
+import { 
+  setupPrayerNotifications, 
+  setupDailySummaryNotifications,
+  sendSettingsUpdateNotification,
+  sendTrackerUpdateNotification,
+  sendCycleUpdateNotification,
+  sendPhaseUpdateNotification 
+} from "./notifications";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Create API router
@@ -304,106 +311,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   return httpServer;
 }
 
-// Setup scheduled task for prayer notifications
-function setupPrayerNotifications() {
-  // Run every minute to check for prayer times
-  cron.schedule("* * * * *", async () => {
-    try {
-      // Get all users with notification settings
-      const users = await storage.getAllUsers();
-      
-      for (const user of users) {
-        // Get user settings
-        const settings = await storage.getSettings(user.id);
-        if (!settings || !settings.latitude || !settings.longitude) continue;
-        
-        // Skip if all notifications are disabled
-        if (!settings.notifyFajr && !settings.notifyZuhr && !settings.notifyAsr && 
-            !settings.notifyMaghrib && !settings.notifyIsha) continue;
-        
-        // Get prayer times for today
-        const today = new Date();
-        const prayerTimes = await getPrayerTimes(
-          parseFloat(settings.latitude),
-          parseFloat(settings.longitude),
-          today
-        );
-        
-        // Check if current time matches any prayer time
-        const now = new Date();
-        const currentHour = now.getHours();
-        const currentMinute = now.getMinutes();
-        
-        // Get user's cycle data to check if in menstruation phase
-        const cycles = await storage.getCycles(user.id);
-        const todayCycle = cycles.find(c => {
-          const cycleDate = new Date(c.date);
-          return cycleDate.getDate() === today.getDate() &&
-                 cycleDate.getMonth() === today.getMonth() &&
-                 cycleDate.getFullYear() === today.getFullYear();
-        });
-        
-        // Skip notifications if user is in menstruation phase
-        if (todayCycle && todayCycle.phase === "menstruation") continue;
-        
-        // Check each prayer time
-        const prayers = [
-          { name: "fajr", enabled: settings.notifyFajr, time: prayerTimes.fajr },
-          { name: "zuhr", enabled: settings.notifyZuhr, time: prayerTimes.zuhr },
-          { name: "asr", enabled: settings.notifyAsr, time: prayerTimes.asr },
-          { name: "maghrib", enabled: settings.notifyMaghrib, time: prayerTimes.maghrib },
-          { name: "isha", enabled: settings.notifyIsha, time: prayerTimes.isha },
-        ];
-        
-        for (const prayer of prayers) {
-          if (!prayer.enabled || !prayer.time) continue;
-          
-          // Parse prayer time
-          const [prayerHour, prayerMinute] = prayer.time.split(":").map(Number);
-          
-          // Adjust for notification time setting
-          let notificationTime: Date;
-          if (settings.notificationTime === "5min") {
-            notificationTime = new Date(today);
-            notificationTime.setHours(prayerHour, prayerMinute - 5);
-          } else if (settings.notificationTime === "10min") {
-            notificationTime = new Date(today);
-            notificationTime.setHours(prayerHour, prayerMinute - 10);
-          } else {
-            notificationTime = new Date(today);
-            notificationTime.setHours(prayerHour, prayerMinute);
-          }
-          
-          // Check if current time matches notification time
-          if (currentHour === notificationTime.getHours() && 
-              currentMinute === notificationTime.getMinutes()) {
-            
-            // Get prayer name in Russian
-            const prayerNames: Record<string, string> = {
-              fajr: "Фаджр",
-              zuhr: "Зухр",
-              asr: "Аср",
-              maghrib: "Магриб",
-              isha: "Иша"
-            };
-            
-            // Pick a random motivational message
-            const messages = [
-              "Время для поклонения Аллаху",
-              "Успех в обоих мирах начинается с намаза",
-              "Намаз - ключ к Раю",
-              "Самый любимый поступок для Аллаха - своевременный намаз"
-            ];
-            const randomMessage = messages[Math.floor(Math.random() * messages.length)];
-            
-            // Send notification
-            const message = `🕌 ${prayerNames[prayer.name]} в ${prayer.time}\n\n${randomMessage}`;
-            await sendTelegramNotification(user.telegramId, message);
-          }
-        }
-      }
-    } catch (error) {
-      console.error("Error in prayer notification scheduler:", error);
-    }
-  });
+// Initialize all notification services
+function initializeNotificationServices() {
+  setupPrayerNotifications();
+  setupDailySummaryNotifications();
 }
