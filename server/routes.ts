@@ -115,6 +115,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Save cycle days to database
       await storage.saveCycle(userId, cycleDaysForDb);
       
+      // Send notification about new cycle
+      await sendCycleUpdateNotification(userId, new Date(startDate));
+      
       return res.status(200).json({ message: "New cycle started successfully" });
     } catch (error) {
       console.error("Error starting new cycle:", error);
@@ -141,6 +144,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Update the phase for this date
       await storage.updatePhase(userId, new Date(date), phase);
+      
+      // Send notification about phase update
+      await sendPhaseUpdateNotification(userId, new Date(date), phase);
       
       return res.status(200).json({ message: "Phase updated successfully" });
     } catch (error) {
