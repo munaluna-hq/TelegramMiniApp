@@ -39,6 +39,7 @@ export interface PrayerTimes {
   asr: string;
   maghrib: string;
   isha: string;
+  midnight: string;
   date: string;
 }
 
@@ -65,6 +66,7 @@ export async function getPrayerTimes(latitude: number, longitude: number, date: 
       asr: data.data.timings.Asr.substring(0, 5),
       maghrib: data.data.timings.Maghrib.substring(0, 5),
       isha: data.data.timings.Isha.substring(0, 5),
+      midnight: data.data.timings.Midnight.substring(0, 5),
       date: formattedDate
     };
   } catch (error) {
