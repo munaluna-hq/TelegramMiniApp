@@ -297,8 +297,9 @@ export async function sendTrackerUpdateNotification(userId: number, date: Date, 
     // Add motivational message
     message += "\nМашаАллах! Продолжай в том же духе 💯";
     
-    // Send notification
-    await sendReliableNotification(user.telegramId, message, {
+    // Send notification using the telegramId we found
+    console.log(`Sending tracker notification to Telegram ID: ${telegramId}`);
+    await sendReliableNotification(telegramId, message, {
       useHTML: true,
       enableSound: true,
       priority: "normal",
