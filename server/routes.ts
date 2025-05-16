@@ -15,6 +15,7 @@ import {
   sendPhaseUpdateNotification 
 } from "./notifications";
 import { sendDirectTestNotification } from "./directNotify";
+import { handleWebhookUpdate, setupWebhook } from "./telegram-webhook";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Create API router
@@ -321,22 +322,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   apiRouter.post("/telegram-webhook", async (req: Request, res: Response) => {
     try {
       const update = req.body;
+      console.log('Received Telegram webhook:', JSON.stringify(update, null, 2));
       
-      // Check if it's a message with text
-      if (update?.message?.text) {
-        const message = update.message;
-        const chatId = message.chat.id;
-        const text = message.text;
-        
-        // Handle /start command
-        if (text === '/start') {
-          // Import the bot command handler
-          const { handleStartCommand } = await import('./botCommands');
-          
-          // Process the start command
-          await handleStartCommand(chatId.toString());
-        }
-      }
+      // Use our webhook handler to process the update
+      await handleWebhookUpdate(update);
       
       // Always respond with 200 OK to acknowledge receipt of the webhook
       res.status(200).json({ ok: true });
@@ -415,4 +404,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
 function initializeNotificationServices() {
   setupPrayerNotifications();
   setupDailySummaryNotifications();
+  
+  // Set up Telegram webhook
+  setupWebhook().then(success => {
+    if (success) {
+      console.log('Telegram webhook set up successfully');
+    } else {
+      console.error('Failed to set up Telegram webhook');
+    }
+  }).catch(error => {
+    console.error('Error setting up Telegram webhook:', error);
+  });
 }
