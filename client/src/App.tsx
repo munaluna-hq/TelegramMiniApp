@@ -6,6 +6,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import NotFound from "@/pages/not-found";
 import Home from "@/pages/Home";
+import NotificationsTest from "@/pages/NotificationsTest";
 import { getTelegramUser } from "@/lib/telegram";
 import LoadingAnimation from "@/components/LoadingAnimation";
 import { useGeolocation } from "@/hooks/use-geolocation";
@@ -17,6 +18,7 @@ function Router() {
       <Route path="/settings" component={Home} />
       <Route path="/tracker" component={Home} />
       <Route path="/calendar" component={Home} />
+      <Route path="/notifications-test" component={NotificationsTest} />
       <Route component={NotFound} />
     </Switch>
   );

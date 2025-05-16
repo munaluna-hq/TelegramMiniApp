@@ -29,7 +29,9 @@ export async function sendReliableNotification(telegramId, message, options = {}
     }
     
     // Skip for development mode mock users
-    if (process.env.NODE_ENV === 'development' && telegramId === '12345') {
+    if (process.env.NODE_ENV === 'development' && 
+        (telegramId === '12345' || telegramId === '123456789' || 
+         !telegramId.match(/^\d+$/) || telegramId.length < 9)) {
       console.log("Development mode: Skipping notification for mock user");
       console.log("Would have sent:", message);
       return true;
