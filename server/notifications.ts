@@ -1,4 +1,5 @@
-import { sendTelegramNotification } from "./telegram";
+// Import the improved notification function instead of the old one
+import { sendReliableNotification } from "./better-notify";
 import { storage } from "./storage";
 import { getPrayerTimes } from "./prayerTimes";
 import cron from "node-cron";
@@ -99,7 +100,12 @@ export function setupPrayerNotifications() {
             
             // Send notification
             const message = `🕌 ${prayerNames[prayer.name]} в ${prayer.time}\n\n${randomMessage}`;
-            await sendTelegramNotification(user.telegramId, message);
+            await sendReliableNotification(user.telegramId, message, {
+              useHTML: true,
+              enableSound: true,
+              priority: "high",
+              retryCount: 2
+            });
           }
         }
       }
