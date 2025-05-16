@@ -414,12 +414,26 @@ export async function sendCycleUpdateNotification(userId: number, startDate: Dat
     
     message += "\nДанные цикла успешно обновлены ✅";
     
-    // Send notification
+    // Send notification using direct API first (most reliable)
+    try {
+      console.log(`Attempting cycle update notification via direct API...`);
+      const directResult = await directApi.sendDirectApiMessage(user.telegramId, message);
+      
+      if (directResult) {
+        console.log(`✅ Cycle update notification successfully sent via direct API to ${user.telegramId}`);
+        return; // Exit if successful
+      }
+    } catch (directError) {
+      console.error(`Error sending cycle update via direct API:`, directError);
+    }
+    
+    // Fallback to reliable notification
+    console.log(`Falling back to reliable notification for cycle update...`);
     await sendReliableNotification(user.telegramId, message, {
       useHTML: true,
       enableSound: true,
       priority: "normal",
-      retryCount: 2
+      retryCount: 3
     });
   } catch (error) {
     console.error("Error sending cycle update notification:", error);
@@ -450,12 +464,26 @@ export async function sendPhaseUpdateNotification(userId: number, date: Date, ph
     
     message += "\nДанные цикла успешно обновлены ✅";
     
-    // Send notification
+    // Send notification using direct API first (most reliable)
+    try {
+      console.log(`Attempting phase update notification via direct API...`);
+      const directResult = await directApi.sendDirectApiMessage(user.telegramId, message);
+      
+      if (directResult) {
+        console.log(`✅ Phase update notification successfully sent via direct API to ${user.telegramId}`);
+        return; // Exit if successful
+      }
+    } catch (directError) {
+      console.error(`Error sending phase update via direct API:`, directError);
+    }
+    
+    // Fallback to reliable notification
+    console.log(`Falling back to reliable notification for phase update...`);
     await sendReliableNotification(user.telegramId, message, {
       useHTML: true,
       enableSound: true,
       priority: "normal",
-      retryCount: 2
+      retryCount: 3
     });
   } catch (error) {
     console.error("Error sending phase update notification:", error);

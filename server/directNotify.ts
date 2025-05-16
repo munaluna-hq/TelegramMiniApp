@@ -1,8 +1,9 @@
-// Import the enhanced notification system
+// Import notification systems
 import { sendReliableNotification } from "./better-notify.js";
+import * as directApi from "./direct_telegram_api.js";
 
 // This module provides direct notification capabilities
-// for testing and development purposes
+// for testing and development purposes with fallback mechanisms
 
 const TEST_MESSAGE = `🌙 <b>MunaLuna Test Notification</b> 🌙
 
@@ -31,8 +32,24 @@ export async function sendDirectTestNotification(telegramId: string): Promise<bo
       return false;
     }
     
-    // Send using our enhanced reliable notification system
-    console.log("Attempting to send notification via improved Telegram API...");
+    // First try the direct API approach (most reliable)
+    console.log("1. Attempting to send notification via direct API method...");
+    try {
+      const directResult = await directApi.sendImportantNotification(telegramId, TEST_MESSAGE);
+      
+      if (directResult) {
+        console.log("✅ Direct API notification sent successfully!");
+        return true;
+      } else {
+        console.log("❌ Direct API notification failed, attempting fallback...");
+      }
+    } catch (directError) {
+      console.error("Error with direct API method:", directError);
+      console.log("Trying fallback approach...");
+    }
+    
+    // Fallback to enhanced reliable notification system
+    console.log("2. Attempting to send notification via improved Telegram API...");
     const result = await sendReliableNotification(
       telegramId, 
       TEST_MESSAGE,
