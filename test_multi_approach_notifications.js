@@ -10,13 +10,16 @@
  */
 
 // Import necessary modules
-const fetch = require('node-fetch');
+import fetch from 'node-fetch';
 
 // Default Telegram ID for testing (change this to your own ID for testing)
 const DEFAULT_TELEGRAM_ID = '262371163';
 
 // Get telegram ID from command line if provided
 const telegramId = process.argv[2] || DEFAULT_TELEGRAM_ID;
+
+// Make the script compatible with ES modules 
+const __dirname = new URL('.', import.meta.url).pathname;
 
 // Test each notification type with multi-approach system
 async function testMultiApproachNotificationSystem() {
