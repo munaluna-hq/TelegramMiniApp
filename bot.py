@@ -2,10 +2,9 @@
 # -*- coding: utf-8 -*-
 import os
 import logging
-from telegram import Update, WebAppInfo
-from telegram.ext import Application, CommandHandler, ContextTypes
+from telegram.ext import ApplicationBuilder, CommandHandler, ContextTypes
 from telegram.ext import CallbackContext
-from telegram import InlineKeyboardButton, InlineKeyboardMarkup
+from telegram import InlineKeyboardButton, InlineKeyboardMarkup, WebAppInfo, Update
 
 # Enable logging
 logging.basicConfig(
@@ -58,14 +57,16 @@ def main() -> None:
     if not token:
         logger.error("No TELEGRAM_BOT_TOKEN found in environment!")
         return
-        
-    application = Application.builder().token(token).build()
+    
+    logger.info("Starting the Telegram bot...")
+    application = ApplicationBuilder().token(token).build()
 
-    # on different commands - answer in Telegram
+    # Register command handlers
     application.add_handler(CommandHandler("start", start))
     application.add_handler(CommandHandler("help", help_command))
 
-    # Start the Bot
+    # Start the Bot in polling mode
+    logger.info("Bot started and running in polling mode. Press Ctrl+C to stop.")
     application.run_polling(allowed_updates=Update.ALL_TYPES)
 
 
