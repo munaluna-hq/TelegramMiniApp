@@ -5,6 +5,7 @@
  */
 
 import fetch from 'node-fetch';
+import { sendReliableNotification } from './better-notify.js';
 
 // The URL for your Telegram Mini Web App
 const WEBAPP_URL = "https://telegram-mini-app-guljansmm.replit.app";
@@ -52,8 +53,17 @@ async function handleStartCommand(message) {
     ]
   };
   
-  // Send the welcome message
-  await sendTelegramMessage(chatId, welcomeText, replyMarkup);
+  // Send the welcome message using the improved notification system
+  // First try with our reliable notification system (for text only)
+  await sendReliableNotification(chatId, welcomeText, {
+    useHTML: true,
+    enableSound: true,
+    priority: "high",
+    retryCount: 3
+  });
+  
+  // Then send the button separately using the original method
+  await sendTelegramMessage(chatId, "Нажмите на кнопку ниже, чтобы открыть приложение:", replyMarkup);
 }
 
 // General function to send Telegram messages

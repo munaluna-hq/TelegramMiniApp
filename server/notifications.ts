@@ -172,7 +172,12 @@ export function setupDailySummaryNotifications() {
         message += "\nМашаАллах! Продолжай стараться и завтра, ин ша Аллах 💜";
         
         // Send notification
-        await sendTelegramNotification(user.telegramId, message);
+        await sendReliableNotification(user.telegramId, message, {
+          useHTML: true,
+          enableSound: true,
+          priority: "normal",
+          retryCount: 2
+        });
       }
     } catch (error) {
       console.error("Error in daily summary notification:", error);
@@ -226,7 +231,12 @@ export async function sendSettingsUpdateNotification(userId: number, settings: a
     message += "\nНастройки успешно сохранены и применены ✅";
     
     // Send notification
-    await sendTelegramNotification(user.telegramId, message);
+    await sendReliableNotification(user.telegramId, message, {
+      useHTML: true,
+      enableSound: true,
+      priority: "normal",
+      retryCount: 2
+    });
   } catch (error) {
     console.error("Error sending settings update notification:", error);
   }
@@ -274,7 +284,12 @@ export async function sendTrackerUpdateNotification(userId: number, date: Date, 
     message += "\nМашаАллах! Продолжай в том же духе 💯";
     
     // Send notification
-    await sendTelegramNotification(user.telegramId, message);
+    await sendReliableNotification(user.telegramId, message, {
+      useHTML: true,
+      enableSound: true,
+      priority: "normal",
+      retryCount: 2
+    });
   } catch (error) {
     console.error("Error sending tracker update notification:", error);
   }
@@ -311,7 +326,12 @@ export async function sendCycleUpdateNotification(userId: number, startDate: Dat
     message += "\nДанные цикла успешно обновлены ✅";
     
     // Send notification
-    await sendTelegramNotification(user.telegramId, message);
+    await sendReliableNotification(user.telegramId, message, {
+      useHTML: true,
+      enableSound: true,
+      priority: "normal",
+      retryCount: 2
+    });
   } catch (error) {
     console.error("Error sending cycle update notification:", error);
   }
@@ -342,7 +362,12 @@ export async function sendPhaseUpdateNotification(userId: number, date: Date, ph
     message += "\nДанные цикла успешно обновлены ✅";
     
     // Send notification
-    await sendTelegramNotification(user.telegramId, message);
+    await sendReliableNotification(user.telegramId, message, {
+      useHTML: true,
+      enableSound: true,
+      priority: "normal",
+      retryCount: 2
+    });
   } catch (error) {
     console.error("Error sending phase update notification:", error);
   }
