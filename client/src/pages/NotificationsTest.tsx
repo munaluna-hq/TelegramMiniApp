@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { getTelegramUser } from "@/lib/telegram";
+import { NotificationTest } from "@/components/NotificationTest";
 
 export default function NotificationsTest() {
   const [telegramId, setTelegramId] = useState('262371163');
@@ -197,6 +198,12 @@ export default function NotificationsTest() {
           </Button>
         </CardFooter>
       </Card>
+
+      {/* Telegram Mini App Test */}
+      <div className="mb-6">
+        <h2 className="text-xl font-bold mb-3">Тест уведомлений в Telegram Mini App</h2>
+        <NotificationTest />
+      </div>
 
       {/* Response Section */}
       {lastResponse && (
