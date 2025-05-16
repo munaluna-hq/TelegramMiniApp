@@ -34,17 +34,10 @@ export async function sendReliableNotification(telegramId, message, options = {}
       
       // If it's not already our real test ID, redirect to the real ID
       if (telegramId !== REAL_TELEGRAM_ID) {
-        if (telegramId === '12345' || telegramId === '123456789' || 
-            !telegramId.match(/^\d+$/) || telegramId.length < 9) {
-          console.log(`DEV MODE: Redirecting notification from mock user ${telegramId} to real ID ${REAL_TELEGRAM_ID}`);
-          console.log("Original message:", message);
-          
-          // Add a prefix to the message showing it was redirected
-          message = `[Development Mode - Originally for ID: ${telegramId}]\n\n${message}`;
-          
-          // Use the real Telegram ID instead
-          telegramId = REAL_TELEGRAM_ID;
-        }
+        console.log(`Development mode: Forcing notification to real test ID: ${REAL_TELEGRAM_ID}`);
+        
+        // Use the real Telegram ID for testing
+        telegramId = REAL_TELEGRAM_ID;
       } else {
         console.log("Development mode: Sending notification to real Telegram ID:", telegramId);
       }

@@ -17,9 +17,9 @@ export function getTelegramUser(): TelegramUser | null {
       
       // For development/testing only - return mock user if in development mode
       if (process.env.NODE_ENV === 'development') {
-        console.log("Development mode: Using mock user data");
+        console.log("Development mode: Using mock user data with real Telegram ID");
         return {
-          id: 12345,
+          id: 262371163, // Using real Telegram ID for notifications
           first_name: "Test",
           last_name: "User",
           username: "testuser",
@@ -39,12 +39,12 @@ export function getTelegramUser(): TelegramUser | null {
   
   // For development/testing only - return mock user if in development mode
   if (process.env.NODE_ENV === 'development') {
-    console.log("Development mode: Using mock user data with actual user");
+    console.log("Development mode: Using mock user data with real Telegram ID");
     return {
-      id: 123456789, // Numeric ID
+      id: 262371163, // Using real Telegram ID for notifications
       first_name: "Guljan",
       last_name: "",
-      username: "iamguljan", // This is the real username, but Telegram needs numeric ID
+      username: "iamguljan", // Using real username
       auth_date: Math.floor(Date.now() / 1000),
       hash: "mock_hash"
     };
