@@ -188,8 +188,20 @@ export function setupDailySummaryNotifications() {
 // Settings update notification
 export async function sendSettingsUpdateNotification(userId: number, settings: any) {
   try {
-    const user = await storage.getUser(userId);
-    if (!user) return;
+    // In development environment, always send to our test Telegram ID
+    let telegramId = '262371163';
+    
+    if (process.env.NODE_ENV !== 'development') {
+      // In production, find the actual user
+      const user = await storage.getUser(userId);
+      if (!user || !user.telegramId) {
+        console.log("Cannot find valid user for settings notification, skipping");
+        return;
+      }
+      telegramId = user.telegramId;
+    } else {
+      console.log("Development mode: Forcing settings notification to real test ID:", telegramId);
+    }
     
     let message = "⚙️ <b>Настройки обновлены</b>\n\n";
     
@@ -231,7 +243,8 @@ export async function sendSettingsUpdateNotification(userId: number, settings: a
     message += "\nНастройки успешно сохранены и применены ✅";
     
     // Send notification
-    await sendReliableNotification(user.telegramId, message, {
+    console.log(`Sending settings notification to Telegram ID: ${telegramId}`);
+    await sendReliableNotification(telegramId, message, {
       useHTML: true,
       enableSound: true,
       priority: "normal",
