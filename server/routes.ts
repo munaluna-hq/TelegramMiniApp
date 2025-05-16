@@ -455,17 +455,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
 // Initialize all notification services
 function initializeNotificationServices() {
+  console.log('📲 Initializing MunaLuna notification services...');
+  
+  // Set up prayer notifications (check every minute)
   setupPrayerNotifications();
+  console.log('✅ Prayer time notifications initialized');
+  
+  // Set up daily summary notifications (sent at 9:00 PM daily)
   setupDailySummaryNotifications();
+  console.log('✅ Daily summary notifications initialized');
   
   // Set up Telegram webhook
   setupWebhook().then(success => {
     if (success) {
-      console.log('Telegram webhook set up successfully');
+      console.log('✅ Telegram webhook set up successfully');
     } else {
-      console.error('Failed to set up Telegram webhook');
+      console.error('❌ Failed to set up Telegram webhook');
     }
   }).catch(error => {
-    console.error('Error setting up Telegram webhook:', error);
+    console.error('❌ Error setting up Telegram webhook:', error);
   });
+  
+  console.log('📱 All notification services are active and running');
 }
