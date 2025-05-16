@@ -14,6 +14,9 @@ function Router() {
   return (
     <Switch>
       <Route path="/" component={Home} />
+      <Route path="/settings" component={Home} />
+      <Route path="/tracker" component={Home} />
+      <Route path="/calendar" component={Home} />
       <Route component={NotFound} />
     </Switch>
   );

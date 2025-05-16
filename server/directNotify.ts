@@ -18,7 +18,10 @@ const TEST_MESSAGE = `🌙 <b>MunaLuna Test Notification</b> 🌙
  * We only support numeric Telegram IDs as they are more reliable
  */
 export async function sendDirectTestNotification(telegramId: string): Promise<boolean> {
+  console.log(`-------- BEGIN TEST NOTIFICATION DEBUG --------`);
   console.log(`Sending direct test notification to Telegram ID: ${telegramId}`);
+  console.log(`Bot token exists: ${!!process.env.TELEGRAM_BOT_TOKEN}`);
+  console.log(`Bot token length: ${process.env.TELEGRAM_BOT_TOKEN?.length || 0}`);
   
   try {
     // Ensure we're working with a valid numeric ID
@@ -28,10 +31,14 @@ export async function sendDirectTestNotification(telegramId: string): Promise<bo
     }
     
     // Send directly using the main notification method
+    console.log("Attempting to send notification via Telegram API...");
     const result = await sendTelegramNotification(telegramId, TEST_MESSAGE);
+    console.log(`Notification send result: ${result ? "Success" : "Failed"}`);
+    console.log(`-------- END TEST NOTIFICATION DEBUG --------`);
     return result;
   } catch (error) {
     console.error("Failed to send direct test notification:", error);
+    console.log(`-------- END TEST NOTIFICATION DEBUG --------`);
     return false;
   }
 }

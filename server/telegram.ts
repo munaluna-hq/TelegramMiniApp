@@ -88,8 +88,28 @@ export async function sendTelegramNotification(telegramId: string, message: stri
       return false;
     }
     
+    // Try both sendMessage and getUpdates to verify bot connectivity
+    const botToken = process.env.TELEGRAM_BOT_TOKEN;
+    
+    // First check if the bot is operational by getting updates
+    try {
+      const botCheckUrl = `https://api.telegram.org/bot${botToken}/getMe`;
+      const botCheck = await fetch(botCheckUrl);
+      const botCheckData = await botCheck.json() as any;
+      
+      if (!botCheckData.ok) {
+        console.error(`Bot validation failed: ${botCheckData.description}`);
+        console.error(`Bot may be unauthorized or token invalid`);
+        return false;
+      }
+      
+      console.log(`Bot validation successful: @${botCheckData.result.username}`);
+    } catch (botCheckError) {
+      console.error("Error checking bot status:", botCheckError);
+    }
+    
     // Make the API call to Telegram
-    const apiUrl = `https://api.telegram.org/bot${process.env.TELEGRAM_BOT_TOKEN}/sendMessage`;
+    const apiUrl = `https://api.telegram.org/bot${botToken}/sendMessage`;
     
     const requestBody = {
       chat_id: telegramId,
@@ -97,25 +117,50 @@ export async function sendTelegramNotification(telegramId: string, message: stri
       parse_mode: "HTML"
     };
     
-    console.log(`Sending Telegram API request to: ${apiUrl}`);
+    console.log(`Sending Telegram API request to user ID: ${telegramId}`);
     
-    const response = await fetch(apiUrl, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(requestBody),
-    });
+    // Try with a timeout to prevent hanging
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 10000);
     
-    const data = await response.json() as any;
-    
-    if (!data.ok) {
-      console.error(`Telegram API error: ${data.description}`);
-    } else {
-      console.log(`Telegram notification successfully sent to user ${telegramId}`);
+    try {
+      const response = await fetch(apiUrl, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(requestBody),
+        signal: controller.signal
+      });
+      
+      clearTimeout(timeoutId);
+      
+      // Detailed response logging
+      console.log(`Telegram API response status: ${response.status}`);
+      
+      const data = await response.json() as any;
+      console.log(`Telegram API response data: ${JSON.stringify(data)}`);
+      
+      if (!data.ok) {
+        console.error(`Telegram API error: ${data.description}`);
+        
+        // Troubleshooting specific errors
+        if (data.description?.includes("chat not found")) {
+          console.error("Error: The user has not started a conversation with the bot yet");
+          console.error("User must send /start to the bot before receiving messages");
+        } else if (data.description?.includes("bot was blocked")) {
+          console.error("Error: The user has blocked the bot");
+        }
+      } else {
+        console.log(`Telegram notification successfully sent to user ${telegramId}`);
+      }
+      
+      return data.ok === true;
+    } catch (fetchError) {
+      console.error("Fetch error during notification sending:", fetchError);
+      clearTimeout(timeoutId);
+      return false;
     }
-    
-    return data.ok === true;
   } catch (error) {
     console.error("Error sending Telegram notification:", error);
     return false;
