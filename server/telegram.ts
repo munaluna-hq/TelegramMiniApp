@@ -52,8 +52,13 @@ const devModeNotifications: DevNotification[] = [];
 // Send notification via Telegram Bot API
 export async function sendTelegramNotification(telegramId: string, message: string): Promise<boolean> {
   try {
+    // Ensure we're working with a valid telegram ID
+    if (!telegramId || telegramId === 'undefined' || telegramId === 'null') {
+      console.error("Invalid Telegram ID provided");
+      return false;
+    }
+    
     // First, store the notification for development mode display
-    // (this will work in both dev and production, providing a backup log)
     console.log(`Notification to user ${telegramId}: ${message}`);
     
     // Strip HTML tags for cleaner display in dev mode
@@ -68,6 +73,13 @@ export async function sendTelegramNotification(telegramId: string, message: stri
     // Limit the number of stored notifications to prevent memory issues
     if (devModeNotifications.length > 50) {
       devModeNotifications.shift();
+    }
+    
+    // Skip actual delivery in local dev mode if it's the mock user ID
+    // This prevents console errors while still allowing us to test the flow
+    if (process.env.NODE_ENV === 'development' && telegramId === '12345') {
+      console.log("Development mode: Skipping actual delivery for mock user");
+      return true;
     }
     
     // Now try to send the actual Telegram notification
@@ -86,7 +98,6 @@ export async function sendTelegramNotification(telegramId: string, message: stri
     };
     
     console.log(`Sending Telegram API request to: ${apiUrl}`);
-    console.log(`With payload: ${JSON.stringify(requestBody)}`);
     
     const response = await fetch(apiUrl, {
       method: "POST",

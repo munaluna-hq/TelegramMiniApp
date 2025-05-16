@@ -3,8 +3,7 @@ import { sendTelegramNotification } from "./telegram";
 // This module provides direct notification capabilities
 // for testing and development purposes
 
-const TEST_MESSAGE = `
-🌙 <b>MunaLuna Test Notification</b> 🌙
+const TEST_MESSAGE = `🌙 <b>MunaLuna Test Notification</b> 🌙
 
 Ассаламу алейкум! Это тестовое уведомление от приложения MunaLuna.
 
@@ -12,8 +11,7 @@ const TEST_MESSAGE = `
 • Теперь вы будете получать напоминания о намазах
 • Приложение будет отправлять вам сводки по вашим поклонениям
 
-<b>Альхамдулиллях!</b> Благодарим вас за использование нашего приложения.
-`;
+<b>Альхамдулиллях!</b> Благодарим вас за использование нашего приложения.`;
 
 /**
  * Sends a direct test notification to the specified Telegram ID

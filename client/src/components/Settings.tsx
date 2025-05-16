@@ -136,12 +136,17 @@ export default function Settings() {
     setIsSendingTestNotification(true);
     
     try {
+      // Log the Telegram ID we're using
+      console.log("Sending notification to Telegram ID:", userTelegramId);
+      
       const response = await fetch('/api/send-test-notification', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ telegramId: userTelegramId.toString() }),
+        body: JSON.stringify({ 
+          telegramId: userTelegramId.toString() 
+        }),
       });
       
       const data = await response.json();
@@ -158,6 +163,9 @@ export default function Settings() {
           description: data.message || "Не удалось отправить тестовое уведомление",
           variant: "destructive",
         });
+        
+        // Log the error for debugging
+        console.error("Failed to send notification:", data);
       }
     } catch (error) {
       console.error("Error sending test notification:", error);
