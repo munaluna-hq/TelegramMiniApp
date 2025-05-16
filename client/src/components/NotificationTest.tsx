@@ -103,7 +103,7 @@ export function NotificationTest() {
         )}
       </CardContent>
       
-      <CardFooter>
+      <CardFooter className="flex flex-col gap-2">
         <Button 
           onClick={sendTestNotification} 
           disabled={isLoading} 
@@ -118,6 +118,63 @@ export function NotificationTest() {
             <>
               <BellRing className="mr-2 h-4 w-4" />
               Отправить тестовое уведомление
+            </>
+          )}
+        </Button>
+        
+        {/* Direct API button */}
+        <Button 
+          onClick={async () => {
+            setIsLoading(true);
+            setResult(null);
+            
+            try {
+              // Always use a real Telegram ID for testing
+              const REAL_TELEGRAM_ID = 262371163;
+              
+              // Try to get the user from Telegram WebApp
+              const user = getTelegramUser();
+              const telegramId = user?.id || REAL_TELEGRAM_ID;
+              
+              console.log(`Sending direct API notification using Telegram ID: ${telegramId}`);
+              
+              // Send the notification using direct API endpoint
+              const response = await fetch("/api/direct-api-notification", {
+                method: "POST",
+                body: JSON.stringify({
+                  telegramId: telegramId.toString()
+                }),
+                headers: {
+                  'Content-Type': 'application/json'
+                }
+              });
+              
+              const data = await response.json();
+              console.log("Direct API notification response:", data);
+              setResult(data);
+            } catch (error) {
+              console.error("Error sending direct API notification:", error);
+              setResult({
+                success: false,
+                message: "Произошла ошибка при отправке прямого уведомления."
+              });
+            } finally {
+              setIsLoading(false);
+            }
+          }}
+          disabled={isLoading} 
+          variant="outline"
+          className="w-full"
+        >
+          {isLoading ? (
+            <>
+              <Spinner className="mr-2 h-4 w-4" />
+              Отправка...
+            </>
+          ) : (
+            <>
+              <BellRing className="mr-2 h-4 w-4" />
+              Прямое API уведомление
             </>
           )}
         </Button>

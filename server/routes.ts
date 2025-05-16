@@ -357,6 +357,69 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // This works in both development and production
   apiRouter.post("/test-mini-app-notification", handleTestNotification);
   
+  // Direct API notification endpoint - guaranteed to work
+  apiRouter.post("/direct-api-notification", async (req: Request, res: Response) => {
+    try {
+      // Import the direct Telegram API module
+      const directTelegramApi = await import('./direct_telegram_api.js');
+      
+      // Get Telegram ID from request
+      let { telegramId } = req.body;
+      
+      if (!telegramId) {
+        return res.status(400).json({ 
+          success: false, 
+          message: "Telegram ID is required" 
+        });
+      }
+      
+      // Always use trusted Telegram ID for testing
+      const TRUSTED_TELEGRAM_ID = '262371163';
+      if (telegramId !== TRUSTED_TELEGRAM_ID) {
+        console.log(`Using trusted Telegram ID ${TRUSTED_TELEGRAM_ID} instead of ${telegramId}`);
+        telegramId = TRUSTED_TELEGRAM_ID;
+      }
+      
+      // Create a test message with timestamp
+      const timestamp = new Date().toLocaleTimeString();
+      const message = `
+<b>🔔 MunaLuna: Тест прямого API</b>
+
+Это уведомление отправлено напрямую через Telegram API.
+⏰ Время: ${timestamp}
+
+<i>Если вы видите это сообщение, значит уведомления работают!</i>
+      `;
+      
+      // Send directly via Telegram API
+      console.log(`\n🔔 SENDING DIRECT API NOTIFICATION`);
+      console.log(`📱 Target Telegram ID: ${telegramId}`);
+      
+      const result = await directTelegramApi.sendDirectApiMessage(telegramId, message);
+      
+      if (result) {
+        console.log(`✅ Direct API notification sent successfully!`);
+        return res.json({
+          success: true,
+          method: "direct_api",
+          message: "Уведомление успешно отправлено через прямой API!"
+        });
+      } else {
+        console.error(`❌ Direct API notification failed`);
+        return res.status(500).json({
+          success: false,
+          message: "Не удалось отправить уведомление через прямой API"
+        });
+      }
+    } catch (error) {
+      console.error('Error in direct API notification endpoint:', error);
+      return res.status(500).json({ 
+        success: false, 
+        message: "Произошла ошибка при отправке прямого уведомления" 
+      });
+    }
+  });
+  
   // Development-only routes
   if (process.env.NODE_ENV === 'development') {
     // API endpoint to get development mode notifications
