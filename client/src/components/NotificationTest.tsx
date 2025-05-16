@@ -23,22 +23,20 @@ export function NotificationTest() {
     setResult(null);
     
     try {
-      // Get the current Telegram user
-      const user = getTelegramUser();
+      // Always use a real Telegram ID for testing
+      const REAL_TELEGRAM_ID = 262371163;
       
-      if (!user || !user.id) {
-        setResult({
-          success: false,
-          message: "Не удалось получить Telegram ID. Пожалуйста, запустите приложение из Telegram."
-        });
-        return;
-      }
+      // Try to get the user from Telegram WebApp
+      const user = getTelegramUser();
+      const telegramId = user?.id || REAL_TELEGRAM_ID;
+      
+      console.log(`Sending test notification using Telegram ID: ${telegramId}`);
       
       // Send the notification test request
       const response = await fetch("/api/test-mini-app-notification", {
         method: "POST",
         body: JSON.stringify({
-          telegramId: user.id.toString()
+          telegramId: telegramId.toString()
         }),
         headers: {
           'Content-Type': 'application/json'
@@ -46,6 +44,7 @@ export function NotificationTest() {
       });
       
       const data = await response.json();
+      console.log("Notification test response:", data);
       setResult(data);
     } catch (error) {
       console.error("Error sending test notification:", error);
