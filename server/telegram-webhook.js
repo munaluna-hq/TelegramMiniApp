@@ -70,13 +70,16 @@ export async function sendTelegramMessage(chatId, text, replyMarkup = null) {
     const body = {
       chat_id: chatId,
       text: text,
-      parse_mode: 'HTML'
+      parse_mode: 'HTML',
+      disable_notification: false  // Ensure notification is sent with sound
     };
     
     // Add reply markup if provided
     if (replyMarkup) {
       body.reply_markup = replyMarkup;
     }
+    
+    console.log(`Attempting to send message to Telegram chat ID: ${chatId}`);
     
     // Make the API call
     const response = await fetch(apiUrl, {
@@ -90,14 +93,63 @@ export async function sendTelegramMessage(chatId, text, replyMarkup = null) {
     const result = await response.json();
     
     if (result.ok) {
-      console.log(`Message sent successfully to chat ID: ${chatId}`);
+      console.log(`✅ Message sent successfully to chat ID: ${chatId}`);
       return true;
     } else {
       console.error('Failed to send message:', result.description);
+      
+      // Try an alternative approach if chat not found
+      if (result.description?.includes("chat not found")) {
+        return await sendAlternativeNotification(chatId, text);
+      }
+      
       return false;
     }
   } catch (error) {
     console.error('Error sending message:', error);
+    return false;
+  }
+}
+
+// Alternative notification method using sendMessage with special formats
+async function sendAlternativeNotification(chatId, text) {
+  const token = process.env.TELEGRAM_BOT_TOKEN;
+  if (!token) return false;
+  
+  try {
+    // Clean text from HTML tags
+    const cleanText = text.replace(/<\/?[^>]+(>|$)/g, "");
+    
+    // Try with different notification settings
+    const apiUrl = `https://api.telegram.org/bot${token}/sendMessage`;
+    const body = {
+      chat_id: chatId,
+      text: `🔔 NOTIFICATION 🔔\n\n${cleanText}`,
+      disable_web_page_preview: true,
+      disable_notification: false
+    };
+    
+    console.log(`Attempting alternative notification to chat ID: ${chatId}`);
+    
+    const response = await fetch(apiUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(body)
+    });
+    
+    const result = await response.json();
+    
+    if (result.ok) {
+      console.log(`✅ Alternative notification sent successfully to chat ID: ${chatId}`);
+      return true;
+    } else {
+      console.error('Failed to send alternative notification:', result.description);
+      return false;
+    }
+  } catch (error) {
+    console.error('Error sending alternative notification:', error);
     return false;
   }
 }
