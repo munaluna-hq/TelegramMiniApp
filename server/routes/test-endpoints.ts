@@ -1,9 +1,13 @@
 import { Request, Response } from 'express';
 import { sendReliableNotification } from '../better-notify.js';
 
+// Import the direct Telegram API functions
+import * as directTelegramApi from '../direct_telegram_api.js';
+
 /**
  * Handles the test notification request in the Telegram Mini App
  * This function sends a test notification directly to the user's Telegram ID
+ * Uses multiple approaches to maximize reliability
  */
 export async function handleTestNotification(req: Request, res: Response) {
   try {
@@ -42,32 +46,75 @@ export async function handleTestNotification(req: Request, res: Response) {
 
 📱 Telegram ID: ${telegramId}
 ⏰ Время отправки: ${timestamp}
-🔄 Тип: Тест из Mini App
+🔄 Тип: Тест из Mini App (прямой API вызов)
 
 <i>Если вы видите это сообщение, значит уведомления работают!</i>
     `;
     
-    // Send notification with sound enabled and high priority
-    const result = await sendReliableNotification(telegramId, message, {
-      useHTML: true,
-      enableSound: true,
-      priority: 'high',
-      retryCount: 3
-    });
+    // Try multiple notification methods in sequence, starting with the most reliable
     
-    if (result) {
-      console.log('✅ Mini App test notification sent successfully!');
-      return res.json({ 
-        success: true, 
-        message: "Тестовое уведомление отправлено успешно!" 
-      });
-    } else {
-      console.error('❌ Failed to send Mini App test notification.');
-      return res.status(500).json({ 
-        success: false, 
-        message: "Не удалось отправить тестовое уведомление." 
-      });
+    // Method 1: Direct Telegram API (most reliable, bypasses libraries)
+    console.log(`\n🧪 Trying Direct API method first...`);
+    try {
+      const directResult = await directTelegramApi.sendDirectApiMessage(telegramId, message);
+      
+      if (directResult) {
+        console.log('✅ Direct API notification sent successfully!');
+        return res.json({ 
+          success: true, 
+          method: 'direct_api',
+          message: "Тестовое уведомление отправлено успешно!" 
+        });
+      }
+    } catch (directError) {
+      console.error('❌ Direct API method failed:', directError);
     }
+    
+    // Method 2: Enhanced notification with retries
+    console.log(`\n🧪 Trying Enhanced Notification method...`);
+    try {
+      const enhancedResult = await sendReliableNotification(telegramId, message, {
+        useHTML: true,
+        enableSound: true,
+        priority: 'high',
+        retryCount: 3
+      });
+      
+      if (enhancedResult) {
+        console.log('✅ Enhanced notification sent successfully!');
+        return res.json({ 
+          success: true, 
+          method: 'enhanced',
+          message: "Тестовое уведомление отправлено успешно!" 
+        });
+      }
+    } catch (enhancedError) {
+      console.error('❌ Enhanced method failed:', enhancedError);
+    }
+    
+    // Method 3: Try silent notification as last resort
+    console.log(`\n🧪 Trying Silent Notification method as last resort...`);
+    try {
+      const silentResult = await directTelegramApi.sendSilentNotification(telegramId, message);
+      
+      if (silentResult) {
+        console.log('✅ Silent notification sent successfully!');
+        return res.json({ 
+          success: true, 
+          method: 'silent',
+          message: "Тестовое уведомление отправлено успешно!" 
+        });
+      }
+    } catch (silentError) {
+      console.error('❌ Silent method failed:', silentError);
+    }
+    
+    // All methods failed
+    console.error('❌ All notification methods failed.');
+    return res.status(500).json({ 
+      success: false, 
+      message: "Не удалось отправить тестовое уведомление, несмотря на несколько попыток." 
+    });
   } catch (error) {
     console.error('Error in Mini App test notification:', error);
     return res.status(500).json({ 
