@@ -245,21 +245,19 @@ export async function sendSettingsUpdateNotification(userId: number, settings: a
 // Tracker update notification
 export async function sendTrackerUpdateNotification(userId: number, date: Date, worship: any) {
   try {
-    // Try to find the user by ID first
-    const user = await storage.getUser(userId);
+    // In development environment, always send to our test Telegram ID
+    let telegramId = '262371163';
     
-    // If no user found or user has no telegramId, use the real test user
-    let telegramId = user?.telegramId;
-    if (!telegramId) {
-      // Get the real test user we created (or find one with the specific telegramId)
-      const realUser = await storage.getUserByTelegramId('262371163');
-      if (realUser) {
-        telegramId = realUser.telegramId;
-        console.log("Using backup real user for notification:", telegramId);
-      } else {
-        console.log("Cannot find any real user for notification, skipping");
+    if (process.env.NODE_ENV !== 'development') {
+      // In production, find the actual user
+      const user = await storage.getUser(userId);
+      if (!user || !user.telegramId) {
+        console.log("Cannot find valid user for notification, skipping");
         return;
       }
+      telegramId = user.telegramId;
+    } else {
+      console.log("Development mode: Forcing notification to real test ID:", telegramId);
     }
     
     const formattedDate = format(date, "d MMMM", { locale: ru });

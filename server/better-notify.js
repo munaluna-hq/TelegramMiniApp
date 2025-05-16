@@ -30,20 +30,23 @@ export async function sendReliableNotification(telegramId, message, options = {}
     
     // In development mode, handle notifications differently
     if (process.env.NODE_ENV === 'development') {
-      // Real Telegram IDs always get notifications
-      const REAL_TELEGRAM_IDS = ['262371163'];
+      const REAL_TELEGRAM_ID = '262371163';
       
-      // Always send notifications to real Telegram IDs
-      if (REAL_TELEGRAM_IDS.includes(telegramId)) {
-        console.log("Development mode: Sending real notification to confirmed Telegram ID:", telegramId);
-        // Continue with sending the actual notification
-      } 
-      // Skip mock users or numbers that don't look like Telegram IDs
-      else if (telegramId === '12345' || telegramId === '123456789' || 
-              !telegramId.match(/^\d+$/) || telegramId.length < 9) {
-        console.log("Development mode: Skipping notification for mock user:", telegramId);
-        console.log("Would have sent:", message);
-        return true;
+      // If it's not already our real test ID, redirect to the real ID
+      if (telegramId !== REAL_TELEGRAM_ID) {
+        if (telegramId === '12345' || telegramId === '123456789' || 
+            !telegramId.match(/^\d+$/) || telegramId.length < 9) {
+          console.log(`DEV MODE: Redirecting notification from mock user ${telegramId} to real ID ${REAL_TELEGRAM_ID}`);
+          console.log("Original message:", message);
+          
+          // Add a prefix to the message showing it was redirected
+          message = `[Development Mode - Originally for ID: ${telegramId}]\n\n${message}`;
+          
+          // Use the real Telegram ID instead
+          telegramId = REAL_TELEGRAM_ID;
+        }
+      } else {
+        console.log("Development mode: Sending notification to real Telegram ID:", telegramId);
       }
     }
     
