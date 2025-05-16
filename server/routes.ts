@@ -317,6 +317,35 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Set up scheduled task for all notifications
   initializeNotificationServices();
 
+  // Telegram bot webhook endpoint to handle bot commands
+  apiRouter.post("/telegram-webhook", async (req: Request, res: Response) => {
+    try {
+      const update = req.body;
+      
+      // Check if it's a message with text
+      if (update?.message?.text) {
+        const message = update.message;
+        const chatId = message.chat.id;
+        const text = message.text;
+        
+        // Handle /start command
+        if (text === '/start') {
+          // Import the bot command handler
+          const { handleStartCommand } = await import('./botCommands');
+          
+          // Process the start command
+          await handleStartCommand(chatId.toString());
+        }
+      }
+      
+      // Always respond with 200 OK to acknowledge receipt of the webhook
+      res.status(200).json({ ok: true });
+    } catch (error) {
+      console.error('Error handling Telegram webhook:', error);
+      res.status(200).json({ ok: true }); // Still respond with 200 to prevent Telegram from retrying
+    }
+  });
+
   // Development-only routes
   if (process.env.NODE_ENV === 'development') {
     // API endpoint to get development mode notifications
@@ -345,6 +374,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
       } catch (error) {
         console.error("Error sending test notification:", error);
         return res.status(500).json({ message: "Server error while sending test notification" });
+      }
+    });
+    
+    // API endpoint to simulate a /start command (for testing)
+    apiRouter.post("/simulate-start", async (req: Request, res: Response) => {
+      try {
+        const { telegramId } = req.body;
+        
+        if (!telegramId) {
+          return res.status(400).json({ message: "Telegram ID is required" });
+        }
+        
+        // Import the bot command handler
+        const { handleStartCommand } = await import('./botCommands');
+        
+        // Process the start command
+        const result = await handleStartCommand(telegramId);
+        
+        if (result) {
+          return res.json({ success: true, message: "Start command sent successfully" });
+        } else {
+          return res.status(500).json({ success: false, message: "Failed to process start command" });
+        }
+      } catch (error) {
+        console.error("Error simulating start command:", error);
+        return res.status(500).json({ message: "Server error while simulating start command" });
       }
     });
   }
