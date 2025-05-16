@@ -7,6 +7,7 @@ const WELCOME_MESSAGE = `Добро пожаловать в MunaLuna!
 
 MunaLuna - это приложение, которое помогает мусульманкам системно и легко планировать поклонение, учитывая женский цикл и нормы шариата.
 
+Как это работает:
 Наш инструмент помогает:
 • Планировать важные религиозные обряды в нужное время
 • Следить за своим здоровьем и состоянием с учётом особенностей женского организма
@@ -16,9 +17,12 @@ MunaLuna - это приложение, которое помогает мусу
 
 Присоединяйся!`;
 
+// The URL to your Telegram Mini Web App
+const WEBAPP_URL = "https://telegram-mini-app-guljansmm.replit.app";
+
 /**
  * Handles the /start command for the Telegram bot
- * Sends a welcome message to the user
+ * Sends a welcome message to the user with a WebApp button
  */
 export async function handleStartCommand(telegramId: string): Promise<boolean> {
   try {
@@ -27,16 +31,28 @@ export async function handleStartCommand(telegramId: string): Promise<boolean> {
       return false;
     }
     
+    // Create inline keyboard with WebApp button
+    const inlineKeyboard = {
+      inline_keyboard: [
+        [
+          {
+            text: "Open WebApp",
+            web_app: { url: WEBAPP_URL }
+          }
+        ]
+      ]
+    };
+    
     // Make the API call to Telegram
     const apiUrl = `https://api.telegram.org/bot${process.env.TELEGRAM_BOT_TOKEN}/sendMessage`;
     
     const requestBody = {
       chat_id: telegramId,
       text: WELCOME_MESSAGE,
-      parse_mode: "HTML"
+      reply_markup: JSON.stringify(inlineKeyboard)
     };
     
-    console.log(`Sending welcome message to user ID: ${telegramId}`);
+    console.log(`Sending welcome message with WebApp button to user ID: ${telegramId}`);
     
     const response = await fetch(apiUrl, {
       method: "POST",
@@ -52,7 +68,7 @@ export async function handleStartCommand(telegramId: string): Promise<boolean> {
       console.error(`Telegram API error: ${data.description}`);
       return false;
     } else {
-      console.log(`Welcome message successfully sent to user ${telegramId}`);
+      console.log(`Welcome message with WebApp button successfully sent to user ${telegramId}`);
       return true;
     }
   } catch (error) {
