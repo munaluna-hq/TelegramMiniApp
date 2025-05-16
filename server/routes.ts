@@ -226,6 +226,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // In a real app, we'd get the user ID from the session
       const userId = 1;
       
+      // Check if there's a real user with Telegram ID 262371163, if not create one
+      // This ensures notifications can be sent to a real Telegram user
+      let user = await storage.getUserByTelegramId('262371163');
+      if (!user) {
+        try {
+          await storage.createUser({
+            telegramId: '262371163',
+            firstName: 'Real',
+            lastName: 'User',
+            username: 'real_user'
+          });
+          console.log('Created real test user with Telegram ID 262371163');
+        } catch (e) {
+          console.log('Real test user may already exist, continuing...');
+        }
+      }
+      
       const worshipData = {
         userId,
         date: new Date(date),
