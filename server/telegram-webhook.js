@@ -36,16 +36,19 @@ async function handleStartCommand(message) {
   // Create the welcome message with personalized greeting
   const welcomeText = 
     `Привет, ${firstName}! 👋\n\n` +
-    "Я бот WebApp MunaLuna. С моей помощью вы сможете:\n" +
-    "• Отслеживать менструальный цикл\n" +
-    "• Получать напоминания о намазах\n" +
-    "• Управлять своими религиозными практиками\n" +
-    "• Получать духовную поддержку";
+    "Добро пожаловать в MunaLuna!\n\n" +
+    "MunaLuna - это приложение, которое помогает мусульманкам системно и легко планировать поклонение, учитывая женский цикл и нормы шариата.\n\n" +
+    "Как это работает:\n" + 
+    "• Отслеживание менструального цикла\n" +
+    "• Планирование поклонения и ежедневных духовных практик\n" +
+    "• Напоминания о времени намаза\n" +
+    "• Получение духовной поддержки\n\n" +
+    "Планируй поклонение с умом и спокойствием!";
   
   // Create the inline keyboard with WebApp button
   const replyMarkup = {
     inline_keyboard: [
-      [{ text: 'Открыть приложение', web_app: { url: WEBAPP_URL } }]
+      [{ text: 'Открыть MunaLuna', web_app: { url: WEBAPP_URL } }]
     ]
   };
   
@@ -107,11 +110,8 @@ export async function setupWebhook() {
     return false;
   }
 
-  const repl_slug = process.env.REPL_SLUG || 'telegram-mini-app-guljansmm';
-  const repl_owner = process.env.REPL_OWNER || 'guljansmm';
-  
-  // The webhook URL that Telegram should call
-  const webhookUrl = `https://${repl_slug}.${repl_owner}.repl.co/api/telegram-webhook`;
+  // Use the actual full URL of the Replit app
+  const webhookUrl = `https://telegram-mini-app-guljansmm.replit.app/api/telegram-webhook`;
   
   try {
     console.log(`Setting webhook to: ${webhookUrl}`);
