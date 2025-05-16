@@ -11,6 +11,7 @@ import { MapPin, User, CheckCircle, Bell } from "lucide-react";
 import { getTelegramUser, showAlert } from "@/lib/telegram";
 import { useToast } from "@/hooks/use-toast";
 import { useGeolocation } from "@/hooks/use-geolocation";
+import NotificationLink from "@/components/NotificationLink";
 
 export default function Settings() {
   const { data: settings } = useQuery<any>({
@@ -427,6 +428,9 @@ export default function Settings() {
               Уведомление будет отправлено на ваш аккаунт Telegram
             </p>
           </div>
+          
+          {/* Add link to the new notifications test page */}
+          <NotificationLink />
         </div>
 
         {/* Save Button */}
