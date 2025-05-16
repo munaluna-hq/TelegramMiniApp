@@ -16,6 +16,7 @@ import {
 } from "./notifications";
 import { sendDirectTestNotification } from "./directNotify";
 import { handleWebhookUpdate, setupWebhook } from "./telegram-webhook";
+import { handleTestNotification } from "./routes/test-endpoints";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Create API router
@@ -352,6 +353,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Special endpoint for Telegram Mini App test notifications
+  // This works in both development and production
+  apiRouter.post("/test-mini-app-notification", handleTestNotification);
+  
   // Development-only routes
   if (process.env.NODE_ENV === 'development') {
     // API endpoint to get development mode notifications
