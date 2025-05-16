@@ -343,6 +343,59 @@ export async function registerRoutes(app: Express): Promise<Server> {
       return res.json({ notifications: getDevModeNotifications() });
     });
     
+    // Direct test notification endpoint that bypasses other APIs and sends directly
+    apiRouter.post("/send-direct-test", async (req: Request, res: Response) => {
+      try {
+        const { telegramId } = req.body;
+        
+        if (!telegramId) {
+          return res.status(400).json({ success: false, message: "Telegram ID is required" });
+        }
+        
+        // Import the enhanced notification function
+        const { sendReliableNotification } = await import('./better-notify.js');
+        
+        console.log(`\n🚀 DIRECT TEST NOTIFICATION REQUEST`);
+        console.log(`📱 Telegram ID: ${telegramId}`);
+        console.log(`🔑 Bot token available: ${!!process.env.TELEGRAM_BOT_TOKEN}`);
+        
+        // Create a unique test message with timestamp
+        const currentTime = new Date().toLocaleTimeString();
+        const testMessage = 
+          `⚠️ <b>ПРЯМОЕ ТЕСТОВОЕ УВЕДОМЛЕНИЕ</b> ⚠️\n\n` +
+          `Это тестовое уведомление от MunaLuna.\n\n` +
+          `📅 Дата и время: <b>${new Date().toLocaleString()}</b>\n` +
+          `🔔 Тип: Прямой тест со звуком\n\n` +
+          `Если вы видите это сообщение, значит ваши уведомления настроены правильно!\n\n` +
+          `Пожалуйста, подтвердите получение этого сообщения в чате Replit.`;
+        
+        // Send with maximum reliability settings
+        const result = await sendReliableNotification(telegramId, testMessage, {
+          useHTML: true,
+          enableSound: true,
+          priority: "high",
+          retryCount: 3
+        });
+        
+        console.log(`✅ Direct test notification result: ${result ? "SUCCESS" : "FAILED"}\n`);
+        
+        if (result) {
+          return res.json({ success: true, message: "Direct test notification sent successfully!" });
+        } else {
+          return res.status(500).json({ 
+            success: false, 
+            message: "Failed to send direct test notification. Check server logs for details." 
+          });
+        }
+      } catch (error) {
+        console.error("Error sending direct test notification:", error);
+        return res.status(500).json({ 
+          success: false, 
+          message: "Server error occurred while sending notification" 
+        });
+      }
+    });
+    
     // API endpoint to send test notifications directly to a user
     apiRouter.post("/send-test-notification", async (req: Request, res: Response) => {
       try {

@@ -139,7 +139,8 @@ export default function Settings() {
       // Log the Telegram ID we're using
       console.log("Sending notification to Telegram ID:", userTelegramId);
       
-      const response = await fetch('/api/send-test-notification', {
+      // Use our new direct test endpoint for improved reliability
+      const response = await fetch('/api/send-direct-test', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
