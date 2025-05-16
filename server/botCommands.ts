@@ -3,7 +3,7 @@ import fetch from "node-fetch";
 /**
  * Welcome message sent to users when they first start the bot
  */
-const WELCOME_MESSAGE = `Добро пожаловать в MunaLuna!
+const WELCOME_MESSAGE = `Ассаляму алейкум! Добро пожаловать в MunaLuna!
 
 MunaLuna - это приложение, которое помогает мусульманкам системно и легко планировать поклонение, учитывая женский цикл и нормы шариата.
 
