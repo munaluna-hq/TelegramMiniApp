@@ -1,4 +1,5 @@
-import { sendTelegramNotification } from "./telegram";
+// Import the enhanced notification system
+import { sendReliableNotification } from "./better-notify.js";
 
 // This module provides direct notification capabilities
 // for testing and development purposes
@@ -30,10 +31,19 @@ export async function sendDirectTestNotification(telegramId: string): Promise<bo
       return false;
     }
     
-    // Send directly using the main notification method
-    console.log("Attempting to send notification via Telegram API...");
-    const result = await sendTelegramNotification(telegramId, TEST_MESSAGE);
-    console.log(`Notification send result: ${result ? "Success" : "Failed"}`);
+    // Send using our enhanced reliable notification system
+    console.log("Attempting to send notification via improved Telegram API...");
+    const result = await sendReliableNotification(
+      telegramId, 
+      TEST_MESSAGE,
+      {
+        useHTML: true,
+        enableSound: true,
+        priority: "high",
+        retryCount: 3
+      }
+    );
+    console.log(`Notification send result: ${result ? "Success ✅" : "Failed ❌"}`);
     console.log(`-------- END TEST NOTIFICATION DEBUG --------`);
     return result;
   } catch (error) {
