@@ -1,5 +1,6 @@
-// Import the improved notification function instead of the old one
+// Import notification functions and APIs
 import { sendReliableNotification } from "./better-notify";
+import * as directApi from "./direct_telegram_api.js"; // Direct API approach
 import { storage } from "./storage";
 import { getPrayerTimes } from "./prayerTimes";
 import cron from "node-cron";
@@ -310,11 +311,27 @@ export async function sendTrackerUpdateNotification(userId: number, date: Date, 
     
     // Send notification using the telegramId we found
     console.log(`Sending tracker notification to Telegram ID: ${telegramId}`);
+    
+    // First try our direct API approach (most reliable)
+    try {
+      console.log(`Attempting direct API notification first...`);
+      const directResult = await directApi.sendDirectApiMessage(telegramId, message);
+      
+      if (directResult) {
+        console.log(`✅ Tracker notification successfully sent using direct API to ${telegramId}`);
+        return; // Exit if successful
+      }
+    } catch (directError) {
+      console.error(`Error with direct API notification:`, directError);
+    }
+    
+    // Fallback to reliable notification approach
+    console.log(`Falling back to reliable notification approach...`);
     await sendReliableNotification(telegramId, message, {
       useHTML: true,
       enableSound: true,
       priority: "normal",
-      retryCount: 2
+      retryCount: 3
     });
   } catch (error) {
     console.error("Error sending tracker update notification:", error);
