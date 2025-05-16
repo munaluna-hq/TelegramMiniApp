@@ -15,7 +15,7 @@ import { ClipboardCheck, BellRing, AlertTriangle } from 'lucide-react';
  */
 export function NotificationTest() {
   const [isLoading, setIsLoading] = useState(false);
-  const [result, setResult] = useState<{ success: boolean; message: string } | null>(null);
+  const [result, setResult] = useState<{ success: boolean; message: string; method?: string } | null>(null);
   
   // Function to send a test notification
   const sendTestNotification = async () => {
@@ -85,8 +85,19 @@ export function NotificationTest() {
             <AlertTitle>
               {result.success ? "Успешно!" : "Ошибка!"}
             </AlertTitle>
-            <AlertDescription>
-              {result.message}
+            <AlertDescription className="space-y-1">
+              <p>{result.message}</p>
+              {result.method && result.success && (
+                <p className="text-xs text-muted-foreground">
+                  Метод доставки: {result.method === 'direct_api' 
+                    ? 'Прямой API запрос' 
+                    : result.method === 'enhanced' 
+                      ? 'Расширенные уведомления' 
+                      : result.method === 'silent' 
+                        ? 'Тихое уведомление' 
+                        : result.method}
+                </p>
+              )}
             </AlertDescription>
           </Alert>
         )}
