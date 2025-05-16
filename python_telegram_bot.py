@@ -36,6 +36,18 @@ MunaLuna - это приложение, которое помогает мусу
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Send welcome message when the command /start is issued."""
+    # Get user's first name for personalized greeting
+    user_firstname = update.effective_user.first_name if update.effective_user else "there"
+    
+    # Create welcome message with personalized greeting
+    welcome_text = (
+        f"Привет, {user_firstname}! 👋\n\n"
+        "Я бот WebApp. Вот что я могу:\n"
+        "• Открывать мини-приложения\n"
+        "• Помогать с задачами\n"
+        "• Просто быть рядом 😊"
+    )
+    
     # Create an inline keyboard with a button to open the WebApp
     keyboard = [
         [InlineKeyboardButton("Open WebApp", web_app=WebAppInfo(url=WEBAPP_URL))]
@@ -43,7 +55,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     reply_markup = InlineKeyboardMarkup(keyboard)
     
     # Send message with inline keyboard
-    await update.message.reply_text(WELCOME_MESSAGE, reply_markup=reply_markup)
+    await update.message.reply_text(welcome_text, reply_markup=reply_markup)
     
     # Log the action
     if update.effective_user:
