@@ -101,11 +101,27 @@ export function setupPrayerNotifications() {
             
             // Send notification
             const message = `🕌 ${prayerNames[prayer.name]} в ${prayer.time}\n\n${randomMessage}`;
+            
+            // First try direct API approach (most reliable)
+            try {
+              console.log(`Attempting prayer notification via direct API for ${prayer.name}...`);
+              const directResult = await directApi.sendImportantNotification(user.telegramId, message);
+              
+              if (directResult) {
+                console.log(`✅ Prayer notification for ${prayer.name} successfully sent via direct API to ${user.telegramId}`);
+                continue; // Move to next prayer if successful
+              }
+            } catch (directError) {
+              console.error(`Error sending prayer notification via direct API:`, directError);
+            }
+            
+            // Fallback to reliable notification
+            console.log(`Falling back to reliable notification for prayer ${prayer.name}...`);
             await sendReliableNotification(user.telegramId, message, {
               useHTML: true,
               enableSound: true,
               priority: "high",
-              retryCount: 2
+              retryCount: 3
             });
           }
         }
@@ -172,12 +188,26 @@ export function setupDailySummaryNotifications() {
         // Add motivational message
         message += "\nМашаАллах! Продолжай стараться и завтра, ин ша Аллах 💜";
         
-        // Send notification
+        // Send notification - First try direct API approach (most reliable)
+        try {
+          console.log(`Attempting daily summary notification via direct API...`);
+          const directResult = await directApi.sendDirectApiMessage(user.telegramId, message);
+          
+          if (directResult) {
+            console.log(`✅ Daily summary notification successfully sent via direct API to ${user.telegramId}`);
+            continue; // Move to next user if successful
+          }
+        } catch (directError) {
+          console.error(`Error sending daily summary via direct API:`, directError);
+        }
+        
+        // Fallback to reliable notification
+        console.log(`Falling back to reliable notification for daily summary...`);
         await sendReliableNotification(user.telegramId, message, {
           useHTML: true,
           enableSound: true,
           priority: "normal",
-          retryCount: 2
+          retryCount: 3
         });
       }
     } catch (error) {
@@ -245,11 +275,27 @@ export async function sendSettingsUpdateNotification(userId: number, settings: a
     
     // Send notification
     console.log(`Sending settings notification to Telegram ID: ${telegramId}`);
+    
+    // First try direct API approach (most reliable)
+    try {
+      console.log(`Attempting settings notification via direct API...`);
+      const directResult = await directApi.sendDirectApiMessage(telegramId, message);
+      
+      if (directResult) {
+        console.log(`✅ Settings notification successfully sent via direct API to ${telegramId}`);
+        return; // Exit if successful
+      }
+    } catch (directError) {
+      console.error(`Error sending settings notification via direct API:`, directError);
+    }
+    
+    // Fallback to reliable notification system
+    console.log(`Falling back to reliable notification system for settings...`);
     await sendReliableNotification(telegramId, message, {
       useHTML: true,
       enableSound: true,
       priority: "normal",
-      retryCount: 2
+      retryCount: 3
     });
   } catch (error) {
     console.error("Error sending settings update notification:", error);
