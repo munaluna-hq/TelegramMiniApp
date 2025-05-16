@@ -28,13 +28,20 @@ export async function sendReliableNotification(telegramId, message, options = {}
       return false;
     }
     
-    // Skip for development mode mock users
-    if (process.env.NODE_ENV === 'development' && 
-        (telegramId === '12345' || telegramId === '123456789' || 
-         !telegramId.match(/^\d+$/) || telegramId.length < 9)) {
-      console.log("Development mode: Skipping notification for mock user");
-      console.log("Would have sent:", message);
-      return true;
+    // In development mode, handle notifications differently
+    if (process.env.NODE_ENV === 'development') {
+      // Always send notifications to real Telegram IDs (like 262371163)
+      if (telegramId === '262371163') {
+        console.log("Development mode: Sending real notification to confirmed Telegram ID");
+        // Continue with sending the actual notification
+      } 
+      // Skip mock users
+      else if (telegramId === '12345' || telegramId === '123456789' || 
+              !telegramId.match(/^\d+$/) || telegramId.length < 9) {
+        console.log("Development mode: Skipping notification for mock user");
+        console.log("Would have sent:", message);
+        return true;
+      }
     }
     
     console.log(`Sending notification to Telegram ID ${telegramId}`);
