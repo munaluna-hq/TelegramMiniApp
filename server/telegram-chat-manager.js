@@ -15,7 +15,7 @@ const chatIdCache = new Map();
  * @param {string} userId - The Telegram user ID
  * @param {string} chatId - The Telegram chat ID
  */
-export function storeChatId(userId, chatId) {
+function storeChatId(userId, chatId) {
   chatIdCache.set(userId, chatId);
   console.log(`Stored chat ID ${chatId} for user ${userId}`);
 }
