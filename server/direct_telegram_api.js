@@ -103,13 +103,52 @@ async function sendAdvancedMessage(chatId, text, options = {}) {
 /**
  * Send important notification
  * This is guaranteed to make a sound and appear as a notification
+ * Optimized for Telegram Mini App environment
  */
 async function sendImportantNotification(chatId, text) {
-  return sendDirectApiMessage(chatId, text, {
-    disable_notification: false,
-    protect_content: false,
-    disable_web_page_preview: true
-  });
+  // Try using a dedicated method for important notifications in Telegram
+  try {
+    // First attempt with standard important settings
+    console.log(`Sending important notification to ${chatId}`);
+    const result = await sendDirectApiMessage(chatId, text, {
+      disable_notification: false,  // Ensure notification is displayed with sound
+      protect_content: false,       // Allow forwarding
+      disable_web_page_preview: true, // Disable link previews for cleaner UI
+      // Special parameters to increase priority
+      priority: 'high',
+      alert: true
+    });
+    
+    if (result) return true;
+    
+    // If that fails, try with a modified approach
+    console.log(`First attempt failed, trying alternate approach for ${chatId}`);
+    const apiUrl = `${TELEGRAM_API_BASE}${TELEGRAM_BOT_TOKEN}/sendMessage`;
+    
+    // Make direct API call with special parameters for important notifications
+    const response = await fetch(apiUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'User-Agent': 'MunaLuna Mini App/1.0',
+        'Accept': 'application/json'
+      },
+      body: JSON.stringify({
+        chat_id: String(chatId).trim(),
+        text: text,
+        parse_mode: 'HTML',
+        disable_notification: false,
+        disable_web_page_preview: true,
+        allow_sending_without_reply: true
+      }),
+    });
+    
+    const data = await response.json();
+    return data.ok === true;
+  } catch (error) {
+    console.error(`Failed to send important notification:`, error);
+    return false;
+  }
 }
 
 /**
