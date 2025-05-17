@@ -218,7 +218,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Save user's worship data for a specific date
   apiRouter.post("/worship", async (req: Request, res: Response) => {
     try {
-      const { date, prayers, quranReading, dua, sadaqa, fast, note } = req.body;
+      const { date, prayers, quranReading, dua, sadaqa, fast, note, isMiniApp } = req.body;
       
       if (!date) {
         return res.status(400).json({ message: "Date is required" });
@@ -257,7 +257,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       await storage.saveWorship(userId, new Date(date), worshipData);
       
-      // Send notification about worship data update
+      // Check if request came from Telegram Mini App 
+      // Either by explicit flag or by checking User-Agent header
+      const isTelegramMiniApp = isMiniApp || 
+                              (req.headers['user-agent'] && 
+                               req.headers['user-agent'].toString().includes('TelegramWebApp'));
+      
+      console.log(`Worship update source: ${isTelegramMiniApp ? 'Telegram Mini App' : 'Browser/Preview'}`);
+      
+      // Send notification about worship data update with source information
       await sendTrackerUpdateNotification(userId, new Date(date), worshipData);
       
       return res.status(200).json({ message: "Worship data saved successfully" });

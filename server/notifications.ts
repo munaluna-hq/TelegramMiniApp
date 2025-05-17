@@ -1,6 +1,7 @@
 // Import notification functions and APIs
 import { sendReliableNotification } from "./better-notify";
 import * as directApi from "./direct_telegram_api.js"; // Direct API approach
+import * as miniAppNotify from "./mini_app_notification.js"; // Specialized for Mini App
 import { storage } from "./storage";
 import { getPrayerTimes } from "./prayerTimes";
 import cron from "node-cron";
@@ -276,9 +277,22 @@ export async function sendSettingsUpdateNotification(userId: number, settings: a
     // Send notification
     console.log(`Sending settings notification to Telegram ID: ${telegramId}`);
     
-    // First try important notification method for Telegram Mini Apps
+    // First try the specialized Mini App notification method
     try {
-      console.log(`Attempting important notification for settings update...`);
+      console.log(`Using specialized Mini App notification for settings update...`);
+      const miniAppResult = await miniAppNotify.sendSettingsMiniAppNotification(telegramId, message);
+      
+      if (miniAppResult) {
+        console.log(`✅ Settings notification successfully sent using Mini App method to ${telegramId}`);
+        return; // Exit if successful
+      }
+    } catch (miniAppError) {
+      console.error(`Error with Mini App notification method:`, miniAppError);
+    }
+    
+    // Try important notification as second option
+    try {
+      console.log(`Trying important notification for settings as fallback...`);
       const importantResult = await directApi.sendImportantNotification(telegramId, message);
       
       if (importantResult) {
@@ -289,9 +303,9 @@ export async function sendSettingsUpdateNotification(userId: number, settings: a
       console.error(`Error with important notification method:`, importantError);
     }
     
-    // Try direct API as second option
+    // Try direct API as third option
     try {
-      console.log(`Trying direct API notification for settings...`);
+      console.log(`Trying direct API notification for settings as second fallback...`);
       const directResult = await directApi.sendDirectApiMessage(telegramId, message);
       
       if (directResult) {
@@ -371,9 +385,22 @@ export async function sendTrackerUpdateNotification(userId: number, date: Date, 
     // Send notification using the telegramId we found
     console.log(`Sending tracker notification to Telegram ID: ${telegramId}`);
     
-    // First try the important notification method for Telegram Mini Apps
+    // First try the specialized Mini App notification method
     try {
-      console.log(`Attempting important notification for tracker update...`);
+      console.log(`Using specialized Mini App notification for tracker update...`);
+      const miniAppResult = await miniAppNotify.sendTrackerMiniAppNotification(telegramId, message);
+      
+      if (miniAppResult) {
+        console.log(`✅ Tracker notification successfully sent using Mini App method to ${telegramId}`);
+        return; // Exit if successful
+      }
+    } catch (miniAppError) {
+      console.error(`Error with Mini App notification method:`, miniAppError);
+    }
+    
+    // Try important notification as second option
+    try {
+      console.log(`Trying important notification as fallback...`);
       const importantResult = await directApi.sendImportantNotification(telegramId, message);
       
       if (importantResult) {
@@ -384,9 +411,9 @@ export async function sendTrackerUpdateNotification(userId: number, date: Date, 
       console.error(`Error with important notification method:`, importantError);
     }
     
-    // Try direct API as second option
+    // Try direct API as third option
     try {
-      console.log(`Trying direct API notification as fallback...`);
+      console.log(`Trying direct API notification as second fallback...`);
       const directResult = await directApi.sendDirectApiMessage(telegramId, message);
       
       if (directResult) {
