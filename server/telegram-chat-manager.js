@@ -15,7 +15,7 @@ const chatIdCache = new Map();
  * @param {string} userId - The Telegram user ID
  * @param {string} chatId - The Telegram chat ID
  */
-function storeChatId(userId, chatId) {
+export function storeChatId(userId, chatId) {
   chatIdCache.set(userId, chatId);
   console.log(`Stored chat ID ${chatId} for user ${userId}`);
 }
@@ -25,7 +25,7 @@ function storeChatId(userId, chatId) {
  * @param {string} userId - The Telegram user ID
  * @returns {string|null} The chat ID or null if not in cache
  */
-function getCachedChatId(userId) {
+export function getCachedChatId(userId) {
   return chatIdCache.has(userId) ? chatIdCache.get(userId) : null;
 }
 

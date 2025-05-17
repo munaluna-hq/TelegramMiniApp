@@ -153,12 +153,18 @@ async function sendWithChatId(chatId, text) {
  * Uses different parameters that might work better in certain app contexts
  * 
  * This method tries a different approach by:
- * 1. First - treating the ID as a chat ID (as is common in private chats)
- * 2. If that fails - adding a channel identifier for when chat_id might be different format
+ * 1. First - ensuring we have the correct chat ID using our chat manager
+ * 2. Trying with modified parameters that sometimes help in Telegram Mini App
  */
 async function sendAlternativeMiniAppNotification(telegramId, text) {
   try {
     console.log(`Trying alternative Mini App notification method for ${telegramId}`);
+    
+    // Try to ensure we have a valid chat ID first
+    const validChatId = await chatManager.ensureValidChatId(telegramId);
+    const chatId = validChatId || telegramId; // Fall back to telegramId if we couldn't get a valid chat ID
+    
+    console.log(`Using chat ID: ${chatId} for alternative notification method`);
     
     // Create the API URL (same endpoint, different parameters)
     const apiUrl = `${TELEGRAM_API_BASE}${TELEGRAM_BOT_TOKEN}/sendMessage`;
@@ -167,14 +173,14 @@ async function sendAlternativeMiniAppNotification(telegramId, text) {
     const uniqueId = Date.now().toString().slice(-6);
     const modifiedText = `${text}\n\n<i>MiniApp-Alt-${uniqueId}</i>`;
     
-    // Try with private message format
+    // Try with special parameters for better Mini App integration
     const messageParams = {
-      chat_id: telegramId, // Use as is - in private chats, chat_id is usually the same as telegramId
+      chat_id: chatId,
       text: modifiedText,
       parse_mode: 'HTML',
       // Key differences in these parameters:
-      disable_notification: false,
-      allow_sending_without_reply: true
+      disable_notification: false,      // Ensure notification appears
+      allow_sending_without_reply: true // Allow sending even if there's no message to reply to
     };
     
     // Send the request with different headers
@@ -189,13 +195,15 @@ async function sendAlternativeMiniAppNotification(telegramId, text) {
     const data = await response.json();
     
     if (data.ok) {
-      console.log(`✅ Alternative Mini App notification successfully sent to ${telegramId}`);
+      console.log(`✅ Alternative Mini App notification successfully sent to ${chatId}`);
+      // Store successful chat ID for future use
+      chatManager.storeChatId(telegramId, chatId);
       return true;
     } else {
-      console.error(`❌ First alternative attempt failed: ${data.description}`);
+      console.error(`❌ Alternative attempt failed: ${data.description}`);
       
-      // If the first attempt failed, try a third approach - get channel info first
-      return await tryGetChatAndSendNotification(telegramId, modifiedText);
+      // If this attempt failed, try sending with `/start` instruction
+      return await trySendStartInstructionNotification(telegramId, text);
     }
   } catch (error) {
     console.error(`❌ Error sending alternative Mini App notification:`, error);
@@ -204,66 +212,100 @@ async function sendAlternativeMiniAppNotification(telegramId, text) {
 }
 
 /**
- * Last resort method that tries to first get the chat information
- * and then sends the notification with the correct chat ID
+ * Try sending a notification with a "/start" instruction to guide users
+ * This is helpful when users haven't started the bot yet and is a last resort
  */
-async function tryGetChatAndSendNotification(telegramId, text) {
+async function trySendStartInstructionNotification(telegramId, text) {
   try {
-    console.log(`Attempting to retrieve actual chat ID for user ${telegramId}`);
+    console.log(`Attempting last resort notification with /start instructions for user ${telegramId}`);
     
-    // First try to get chat information
-    const getChatUrl = `${TELEGRAM_API_BASE}${TELEGRAM_BOT_TOKEN}/getChat`;
-    const chatParams = {
-      chat_id: telegramId
-    };
+    // Add a special message encouraging the user to start the bot
+    const startInstructionText = `
+${text}
+
+<b>⚠️ Important:</b> If you don't see notifications from MunaLuna, please:
+1) Open our Telegram bot @munaluna1_bot
+2) Send the command <code>/start</code> to enable notifications
+3) Return to the app
+
+<i>This ensures we can send you important updates.</i>
+`;
     
-    const chatResponse = await fetch(getChatUrl, {
+    // Try sending with the user ID directly
+    const apiUrl = `${TELEGRAM_API_BASE}${TELEGRAM_BOT_TOKEN}/sendMessage`;
+    const response = await fetch(apiUrl, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'
       },
-      body: JSON.stringify(chatParams)
-    });
-    
-    const chatData = await chatResponse.json();
-    
-    if (chatData.ok && chatData.result && chatData.result.id) {
-      // We got the actual chat ID, now try to send the message
-      const actualChatId = chatData.result.id;
-      console.log(`Retrieved actual chat ID: ${actualChatId}`);
-      
-      const finalApiUrl = `${TELEGRAM_API_BASE}${TELEGRAM_BOT_TOKEN}/sendMessage`;
-      const finalParams = {
-        chat_id: actualChatId,
-        text: text,
+      body: JSON.stringify({
+        chat_id: telegramId,
+        text: startInstructionText,
         parse_mode: 'HTML',
         disable_notification: false
-      };
-      
-      const finalResponse = await fetch(finalApiUrl, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(finalParams)
-      });
-      
-      const finalData = await finalResponse.json();
-      
-      if (finalData.ok) {
-        console.log(`✅ Final notification attempt successful using retrieved chat ID ${actualChatId}`);
-        return true;
-      } else {
-        console.error(`❌ Final notification attempt failed: ${finalData.description}`);
-        return false;
-      }
+      })
+    });
+    
+    const data = await response.json();
+    
+    if (data.ok) {
+      console.log(`✅ Start instruction notification sent successfully to ${telegramId}`);
+      return true;
     } else {
-      console.error(`❌ Could not retrieve chat information: ${chatData.description || 'Unknown error'}`);
+      console.error(`❌ Start instruction notification failed: ${data.description}`);
       return false;
     }
   } catch (error) {
-    console.error(`❌ Error in final notification attempt:`, error);
+    console.error(`❌ Error sending start instruction notification:`, error);
     return false;
+  }
+}
+
+/**
+ * Last resort method that tries to first get the chat information
+ * and then sends the notification with the correct chat ID
+ * Note: This is left here for compatibility but replaced by our chat manager system
+ */
+async function tryGetChatAndSendNotification(telegramId, text) {
+  // Use our chat manager to handle this more effectively
+  const actualChatId = await chatManager.lookupChatId(telegramId);
+  
+  if (actualChatId) {
+    // We found a valid chat ID, try sending the message
+    console.log(`Retrieved actual chat ID: ${actualChatId} through chat manager`);
+    
+    const finalApiUrl = `${TELEGRAM_API_BASE}${TELEGRAM_BOT_TOKEN}/sendMessage`;
+    const finalParams = {
+      chat_id: actualChatId,
+      text: text,
+      parse_mode: 'HTML',
+      disable_notification: false
+    };
+    
+    const finalResponse = await fetch(finalApiUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(finalParams)
+    });
+    
+    const finalData = await finalResponse.json();
+    
+    if (finalData.ok) {
+      console.log(`✅ Final notification attempt successful using retrieved chat ID ${actualChatId}`);
+      return true;
+    } else {
+      console.error(`❌ Final notification attempt failed: ${finalData.description}`);
+      
+      // If that failed too, try the start instruction approach
+      return await trySendStartInstructionNotification(telegramId, text);
+    }
+  } else {
+    console.error(`❌ Could not retrieve chat information for ${telegramId}`);
+    
+    // If we couldn't get the chat ID, try the start instruction approach
+    return await trySendStartInstructionNotification(telegramId, text);
   }
 }
 
