@@ -3,6 +3,9 @@
  * 
  * This module directly calls the Telegram Bot API endpoints
  * without relying on intermediary libraries
+ * 
+ * This is optimized for the Telegram Mini App environment where
+ * standard notification approaches might not work as expected.
  */
 
 import fetch from 'node-fetch';
@@ -14,6 +17,9 @@ if (!TELEGRAM_BOT_TOKEN) {
   console.error('⚠️ TELEGRAM_BOT_TOKEN environment variable is not set');
 }
 
+// Base URL for Telegram API
+const TELEGRAM_API_BASE = 'https://api.telegram.org/bot';
+
 /**
  * Send a message directly to Telegram API
  * This is the most direct approach to ensure delivery
@@ -24,28 +30,38 @@ async function sendDirectApiMessage(chatId, text, options = {}) {
     return false;
   }
 
-  const apiUrl = `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`;
+  const apiUrl = `${TELEGRAM_API_BASE}${TELEGRAM_BOT_TOKEN}/sendMessage`;
   
   try {
-    // Default message parameters
+    // Ensure chat ID is a string
+    chatId = String(chatId).trim();
+    
+    // Default message parameters with settings optimized for Telegram Mini App
     const messageParams = {
       chat_id: chatId,
       text: text,
       parse_mode: 'HTML',
-      disable_notification: false,
+      disable_notification: false, // Ensure notifications are enabled
+      protect_content: false,      // Don't restrict forwarding or saving
+      disable_web_page_preview: true, // Disable web previews for cleaner notifications
+      allow_sending_without_reply: true, // Allow sending even if there's no message to reply to
       ...options
     };
 
-    console.log(`🔸 Sending direct API message to ${chatId}`);
+    console.log(`🔸 Sending optimized direct API message to ${chatId}`);
     
+    // Make direct API request with headers set for Telegram
     const response = await fetch(apiUrl, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
+        'User-Agent': 'MunaLuna Telegram Mini App/1.0',
+        'Accept': 'application/json'
       },
       body: JSON.stringify(messageParams),
     });
 
+    // Process response
     const data = await response.json();
 
     if (data.ok) {
@@ -53,6 +69,15 @@ async function sendDirectApiMessage(chatId, text, options = {}) {
       return true;
     } else {
       console.error(`❌ Telegram API error: ${data.description}`);
+      console.error(`Error code: ${data.error_code}`);
+      
+      // Special handling for specific error codes
+      if (data.error_code === 403) {
+        console.error(`User ${chatId} has blocked the bot or hasn't initiated conversation`);
+      } else if (data.error_code === 400) {
+        console.error(`Bad request - check if chat_id ${chatId} is valid`);
+      }
+      
       return false;
     }
   } catch (error) {
