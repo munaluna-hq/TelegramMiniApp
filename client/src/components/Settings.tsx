@@ -80,7 +80,11 @@ export default function Settings() {
 
   const updateSettingsMutation = useMutation({
     mutationFn: async (data: UserSettings) => {
-      return apiRequest("POST", "/api/settings", data);
+      // Add the user ID to the settings data to ensure it's updating the correct user
+      return apiRequest("POST", `/api/settings?userId=${userId}`, {
+        ...data,
+        userId: userId, // Include user ID to ensure settings are only applied to this user
+      });
     },
     onSuccess: () => {
       // Always show toast notification since it's more reliable
