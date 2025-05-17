@@ -14,8 +14,12 @@ import { useGeolocation } from "@/hooks/use-geolocation";
 import NotificationLink from "@/components/NotificationLink";
 
 export default function Settings() {
+  const telegramUser = getTelegramUser();
+  const userId = telegramUser?.id || 1; // Get user ID from Telegram or default to 1
+  
   const { data: settings } = useQuery<any>({
-    queryKey: ['/api/settings'],
+    queryKey: ['/api/settings', userId],
+    queryFn: () => apiRequest('GET', `/api/settings?userId=${userId}`),
   });
   
   const { toast } = useToast();
@@ -218,8 +222,6 @@ export default function Settings() {
   const handleDetectLocation = () => {
     detectLocation();
   };
-
-  const telegramUser = getTelegramUser();
 
   return (
     <div className="p-4">

@@ -278,8 +278,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Get user settings
   apiRouter.get("/settings", async (req: Request, res: Response) => {
     try {
-      // In a real app, we'd get the user ID from the session
-      const userId = 1;
+      // Get user ID from query or session, defaulting to user-specific ID
+      const userId = req.query.userId ? parseInt(req.query.userId as string) : 1;
       
       const settings = await storage.getSettings(userId);
       return res.json(settings || {});
@@ -293,6 +293,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   apiRouter.post("/settings", async (req: Request, res: Response) => {
     try {
       const settingsSchema = z.object({
+        userId: z.number().optional(), // Allow specifying userId in the request
         city: z.string().optional(),
         latitude: z.string().optional(),
         longitude: z.string().optional(),
@@ -308,8 +309,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       const validatedSettings = settingsSchema.parse(req.body);
       
-      // In a real app, we'd get the user ID from the session
-      const userId = 1;
+      // Get user ID from the request body, query params, or default to 1
+      const userId = validatedSettings.userId || 
+                     (req.query.userId ? parseInt(req.query.userId as string) : 1);
       
       // Get current settings to check if they exist
       const currentSettings = await storage.getSettings(userId);
