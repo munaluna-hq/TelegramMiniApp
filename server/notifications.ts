@@ -220,20 +220,16 @@ export function setupDailySummaryNotifications() {
 // Settings update notification
 export async function sendSettingsUpdateNotification(userId: number, settings: any) {
   try {
-    // In development environment, always send to our test Telegram ID
-    let telegramId = '262371163';
-    
-    if (process.env.NODE_ENV !== 'development') {
-      // In production, find the actual user
-      const user = await storage.getUser(userId);
-      if (!user || !user.telegramId) {
-        console.log("Cannot find valid user for settings notification, skipping");
-        return;
-      }
-      telegramId = user.telegramId;
-    } else {
-      console.log("Development mode: Forcing settings notification to real test ID:", telegramId);
+    // Always use the actual user's Telegram ID
+    const user = await storage.getUser(userId);
+    if (!user || !user.telegramId) {
+      console.log("Cannot find valid user for settings notification, skipping");
+      return;
     }
+    
+    // Use the user's actual Telegram ID to ensure proper isolation
+    const telegramId = user.telegramId;
+    console.log(`Sending settings notification to user ${userId} with Telegram ID: ${telegramId}`);
     
     let message = "⚙️ <b>Настройки обновлены</b>\n\n";
     
@@ -332,20 +328,18 @@ export async function sendSettingsUpdateNotification(userId: number, settings: a
 // Tracker update notification
 export async function sendTrackerUpdateNotification(userId: number, date: Date, worship: any) {
   try {
-    // In development environment, always send to our test Telegram ID
-    let telegramId = '262371163';
-    
-    if (process.env.NODE_ENV !== 'development') {
-      // In production, find the actual user
-      const user = await storage.getUser(userId);
-      if (!user || !user.telegramId) {
-        console.log("Cannot find valid user for notification, skipping");
-        return;
-      }
-      telegramId = user.telegramId;
-    } else {
-      console.log("Development mode: Forcing notification to real test ID:", telegramId);
+    // Always use the actual user's Telegram ID to ensure proper data isolation
+    const user = await storage.getUser(userId);
+    if (!user || !user.telegramId) {
+      console.log("Cannot find valid user for tracker notification, skipping");
+      return;
     }
+    
+    // Use the user's actual Telegram ID
+    const telegramId = user.telegramId;
+    
+    // Log the user ID to help with debugging
+    console.log(`Sending tracker notification to user ${userId} with Telegram ID: ${telegramId}`);
     
     const formattedDate = format(date, "d MMMM", { locale: ru });
     
