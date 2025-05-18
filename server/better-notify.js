@@ -28,18 +28,15 @@ export async function sendReliableNotification(telegramId, message, options = {}
       return false;
     }
     
-    // In development mode, handle notifications differently
+    // In development mode, just log the notification details
     if (process.env.NODE_ENV === 'development') {
-      const REAL_TELEGRAM_ID = '262371163';
+      // Keep the original user's Telegram ID
+      console.log(`Development mode: Sending notification to Telegram ID: ${telegramId}`);
       
-      // If it's not already our real test ID, redirect to the real ID
-      if (telegramId !== REAL_TELEGRAM_ID) {
-        console.log(`Development mode: Forcing notification to real test ID: ${REAL_TELEGRAM_ID}`);
-        
-        // Use the real Telegram ID for testing
-        telegramId = REAL_TELEGRAM_ID;
-      } else {
-        console.log("Development mode: Sending notification to real Telegram ID:", telegramId);
+      // Validate telegramId format - should be numeric
+      if (!telegramId || !telegramId.match(/^\d+$/)) {
+        console.log(`Warning: Invalid Telegram ID format: ${telegramId}`);
+        return false;
       }
     }
     
