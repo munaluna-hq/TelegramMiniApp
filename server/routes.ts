@@ -191,14 +191,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Get user's worship data for a specific date
   apiRouter.get("/worship", async (req: Request, res: Response) => {
     try {
-      const { date } = req.query;
+      const { date, userId: userIdParam } = req.query;
       
       if (!date) {
         return res.status(400).json({ message: "Date is required" });
       }
       
-      // In a real app, we'd get the user ID from the session
-      const userId = 1;
+      // Get user ID from query parameters or default to 1
+      const userId = userIdParam ? parseInt(userIdParam as string) : 1;
+      
+      console.log(`Getting worship data for user ID: ${userId}, date: ${date}`);
       
       const worshipData = await storage.getWorship(userId, new Date(date as string));
       return res.json(worshipData || {
@@ -218,29 +220,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Save user's worship data for a specific date
   apiRouter.post("/worship", async (req: Request, res: Response) => {
     try {
-      const { date, prayers, quranReading, dua, sadaqa, fast, note, isMiniApp } = req.body;
+      const { date, prayers, quranReading, dua, sadaqa, fast, note, isMiniApp, userId: requestUserId } = req.body;
       
       if (!date) {
         return res.status(400).json({ message: "Date is required" });
       }
       
-      // In a real app, we'd get the user ID from the session
-      const userId = 1;
+      // Get user ID from request body, query params, or default to 1
+      const userId = requestUserId || 
+                     (req.query.userId ? parseInt(req.query.userId as string) : 1);
+                     
+      console.log(`Saving worship data for user ID: ${userId}, Date: ${date}`);
       
-      // Check if there's a real user with Telegram ID 262371163, if not create one
-      // This ensures notifications can be sent to a real Telegram user
-      let user = await storage.getUserByTelegramId('262371163');
+      // Get the actual user for notifications
+      let user = await storage.getUser(userId);
       if (!user) {
+        console.log(`User with ID ${userId} not found for notifications, using default`);
+        // If we can't find the user, we'll create a default one for fallback
         try {
-          await storage.createUser({
-            telegramId: '262371163',
-            firstName: 'Real',
+          user = await storage.createUser({
+            telegramId: Date.now().toString(), // Use a unique ID
+            firstName: 'Default',
             lastName: 'User',
-            username: 'real_user'
+            username: 'default_user'
           });
-          console.log('Created real test user with Telegram ID 262371163');
         } catch (e) {
-          console.log('Real test user may already exist, continuing...');
+          console.log('Error creating default user, continuing without notifications...');
         }
       }
       
