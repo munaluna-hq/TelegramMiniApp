@@ -74,12 +74,28 @@ export default function DailyTracker() {
 
   // We're using WorshipFormData defined above for both the form and API data
 
+  // Get user ID for data isolation - either from localStorage or default to 1
+  const [userId, setUserId] = useState<number>(1);
+  
+  // Get user ID from localStorage on component mount
+  useEffect(() => {
+    const storedUserId = localStorage.getItem('userId');
+    if (storedUserId) {
+      setUserId(parseInt(storedUserId));
+    } else if (window.Telegram?.WebApp?.initDataUnsafe?.user?.id) {
+      // If using Telegram Mini App, get user ID from Telegram
+      const telegramUserId = window.Telegram.WebApp.initDataUnsafe.user.id;
+      localStorage.setItem('userId', telegramUserId.toString());
+      setUserId(telegramUserId);
+    }
+  }, []);
+  
   // Fetch daily worship data - use our same type as the form data
   const { data: worshipData, isLoading: isLoadingWorship } = useQuery<WorshipFormData>({
-    queryKey: ['/api/worship', format(currentDate, 'yyyy-MM-dd')],
+    queryKey: ['/api/worship', format(currentDate, 'yyyy-MM-dd'), userId],
     queryFn: async () => {
       try {
-        const response = await fetch(`/api/worship?date=${format(currentDate, 'yyyy-MM-dd')}`);
+        const response = await fetch(`/api/worship?date=${format(currentDate, 'yyyy-MM-dd')}&userId=${userId}`);
         if (!response.ok) {
           throw new Error("Failed to fetch worship data");
         }
@@ -160,8 +176,11 @@ export default function DailyTracker() {
   // Save worship data mutation
   const saveWorshipMutation = useMutation({
     mutationFn: async (data: any) => {
+      // Add user ID to the data being sent
       return apiRequest("POST", "/api/worship", {
         date: format(currentDate, 'yyyy-MM-dd'),
+        userId: userId, // Include user ID for proper data isolation
+        isMiniApp: !!window.Telegram?.WebApp, // Check if we're in Telegram Mini App
         ...data
       });
     },
@@ -172,7 +191,8 @@ export default function DailyTracker() {
         variant: "default",
         duration: 3000,
       });
-      queryClient.invalidateQueries({ queryKey: ['/api/worship', format(currentDate, 'yyyy-MM-dd')] });
+      // Update the query key to include user ID
+      queryClient.invalidateQueries({ queryKey: ['/api/worship', format(currentDate, 'yyyy-MM-dd'), userId] });
     },
     onError: (error) => {
       console.error("Error saving worship data:", error);
