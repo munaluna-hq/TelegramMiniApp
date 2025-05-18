@@ -11,9 +11,6 @@ export interface TelegramUser {
 
 // Function to get Telegram Web App data
 export function getTelegramUser(): TelegramUser | null {
-  // Always use a real Telegram ID for the notification test endpoint
-  const REAL_TELEGRAM_ID = 262371163;
-  
   // Check if we're in the Telegram WebApp environment
   if (window.Telegram && window.Telegram.WebApp) {
     // Try to get user data from Telegram WebApp
@@ -25,10 +22,12 @@ export function getTelegramUser(): TelegramUser | null {
       if (userData.id) {
         return userData as TelegramUser;
       } else {
-        console.warn("Telegram user data found but ID is missing, using fallback ID");
+        console.warn("Telegram user data found but ID is missing, generating unique ID");
+        // Generate a unique ID based on current timestamp to avoid data collision
+        const uniqueId = Math.floor(Date.now() / 1000) + Math.floor(Math.random() * 10000);
         return {
           ...userData,
-          id: REAL_TELEGRAM_ID, // Use fallback ID if the actual ID is missing
+          id: uniqueId,
           auth_date: userData.auth_date || Math.floor(Date.now() / 1000),
           hash: userData.hash || "telegram_data_hash"
         } as TelegramUser;
@@ -36,24 +35,26 @@ export function getTelegramUser(): TelegramUser | null {
     } else {
       console.log("Telegram WebApp found, but no user data available yet.");
       
-      // For development/testing only - return mock user with real Telegram ID
+      // For development/testing only - return mock user with unique ID
       if (process.env.NODE_ENV === 'development') {
-        console.log("Development mode: Using mock user data with real Telegram ID for notifications");
+        // Generate a unique ID to ensure data isolation in development
+        const devUniqueId = Math.floor(Date.now() / 1000) + Math.floor(Math.random() * 10000);
+        console.log("Development mode: Using mock user data with unique ID for data isolation");
         return {
-          id: REAL_TELEGRAM_ID,
+          id: devUniqueId,
           first_name: "Test",
           last_name: "User",
-          username: "testuser",
+          username: "testuser_" + devUniqueId,
           auth_date: Math.floor(Date.now() / 1000),
           hash: "mock_hash"
         };
       }
       
-      // Return a fallback user for production with the real Telegram ID
-      // This ensures notifications always work, even when user data isn't immediately available
-      console.log("Using fallback user with real Telegram ID for notifications");
+      // Generate a unique session ID to avoid data collisions
+      const sessionUniqueId = Math.floor(Date.now() / 1000) + Math.floor(Math.random() * 10000);
+      console.log("Using session-specific unique ID for data isolation");
       return {
-        id: REAL_TELEGRAM_ID,
+        id: sessionUniqueId,
         first_name: "Telegram",
         last_name: "User",
         auth_date: Math.floor(Date.now() / 1000),
@@ -62,14 +63,17 @@ export function getTelegramUser(): TelegramUser | null {
     }
   }
   
-  console.warn("Telegram Web App not found, using mock data");
+  console.warn("Telegram Web App not found, using mock data with unique ID");
   
-  // If we're not in a Telegram environment, still provide a valid user for testing
+  // Generate unique ID for browser testing to ensure data isolation
+  const browserUniqueId = Math.floor(Date.now() / 1000) + Math.floor(Math.random() * 10000);
+  
+  // If we're not in a Telegram environment, provide a unique user for testing
   return {
-    id: REAL_TELEGRAM_ID, // Always use real Telegram ID for notifications to work
-    first_name: "Guljan",
-    last_name: "",
-    username: "iamguljan",
+    id: browserUniqueId,
+    first_name: "Test",
+    last_name: "User",
+    username: "testuser_" + browserUniqueId,
     auth_date: Math.floor(Date.now() / 1000),
     hash: "mock_hash"
   };
