@@ -75,9 +75,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Get user's cycle data
   apiRouter.get("/cycles", async (req: Request, res: Response) => {
     try {
-      // In a real app, we'd get the user ID from the session
-      // For this demo, we'll use a fixed user ID
-      const userId = 1;
+      // Get user ID from query parameters, or fallback to default if not provided
+      const userId = req.query.userId ? parseInt(req.query.userId as string) : 1;
+      console.log(`Getting cycles for user ID: ${userId}`);
       
       const cycles = await storage.getCycles(userId);
       return res.json(cycles);

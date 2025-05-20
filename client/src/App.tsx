@@ -43,6 +43,14 @@ function App() {
           });
           
           if (response.ok) {
+            const data = await response.json();
+            
+            // Store user ID in localStorage for use across the app
+            if (data.user && data.user.id) {
+              localStorage.setItem('userId', data.user.id.toString());
+              console.log('User authenticated with ID:', data.user.id);
+            }
+            
             setIsAuthenticated(true);
           }
         }
@@ -124,6 +132,14 @@ function App() {
             });
             
             if (response.ok) {
+              const data = await response.json();
+              
+              // Store user ID in localStorage for use across the app
+              if (data.user && data.user.id) {
+                localStorage.setItem('userId', data.user.id.toString());
+                console.log('User authenticated with ID:', data.user.id);
+              }
+              
               setIsAuthenticated(true);
             }
           }
