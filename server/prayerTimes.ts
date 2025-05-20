@@ -48,7 +48,8 @@ export async function getPrayerTimes(latitude: number, longitude: number, date: 
   try {
     const formattedDate = format(date, "dd-MM-yyyy");
     
-    const url = `https://api.aladhan.com/v1/timings/${formattedDate}?latitude=${latitude}&longitude=${longitude}&method=2`;
+    // Use method=1 (Egyptian General Authority of Survey) with school=1 (Hanafi)
+    const url = `https://api.aladhan.com/v1/timings/${formattedDate}?latitude=${latitude}&longitude=${longitude}&method=1&school=1`;
     
     const response = await fetch(url);
     
