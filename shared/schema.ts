@@ -75,9 +75,11 @@ export type Worship = typeof worshipEntries.$inferSelect;
 export const settingsTable = pgTable("settings", {
   id: serial("id").primaryKey(),
   userId: integer("user_id").notNull().unique(),
-  city: text("city"),
-  latitude: text("latitude"),
-  longitude: text("longitude"),
+  cityId: integer("city_id"),  // ID of selected city from Muftyat.kz API
+  cityName: text("city_name"), // Name of the city for display
+  city: text("city"),          // Legacy field kept for backward compatibility
+  latitude: text("latitude"),  // Legacy field kept for backward compatibility
+  longitude: text("longitude"),// Legacy field kept for backward compatibility
   notificationTime: text("notification_time").notNull(), // exact, 5min, 10min
   notifyFajr: boolean("notify_fajr").notNull(),
   notifyZuhr: boolean("notify_zuhr").notNull(),
@@ -90,6 +92,8 @@ export const settingsTable = pgTable("settings", {
 
 export const insertSettingsSchema = createInsertSchema(settingsTable).pick({
   userId: true,
+  cityId: true,
+  cityName: true,
   city: true,
   latitude: true,
   longitude: true,

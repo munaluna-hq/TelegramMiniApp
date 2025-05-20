@@ -3,7 +3,7 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { addDays, format, parseISO } from "date-fns";
 import { z } from "zod";
-import { getPrayerTimes } from "./prayerTimes";
+import { getPrayerTimes, getPrayerTimesByCity, getCities } from "./prayerTimes";
 import { verifyTelegramData, getDevModeNotifications } from "./telegram";
 import { calculateCycleDays } from "../client/src/lib/cycleCalculations";
 import { 
@@ -159,28 +159,54 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
+  // Get available cities from Muftyat.kz API
+  apiRouter.get("/cities", async (req: Request, res: Response) => {
+    try {
+      const cities = await getCities();
+      return res.json(cities);
+    } catch (error) {
+      console.error("Error fetching cities:", error);
+      return res.status(500).json({ message: "Failed to fetch cities" });
+    }
+  });
+  
   // Get prayer times for a specific date
   apiRouter.get("/prayer-times", async (req: Request, res: Response) => {
     try {
-      const { date } = req.query;
+      const { date, userId: userIdParam } = req.query;
       
-      // In a real app, we'd get the user ID from the session
-      const userId = 1;
+      // Use user ID from query or default to 1
+      const userId = userIdParam ? parseInt(userIdParam as string) : 1;
       
-      // Get user's location from settings
+      // Get user's settings
       const settings = await storage.getSettings(userId);
       
-      if (!settings || !settings.latitude || !settings.longitude) {
-        return res.status(400).json({ message: "Location settings are not configured" });
+      if (!settings) {
+        return res.status(400).json({ message: "User settings not found" });
       }
       
       // Get prayer times
       const prayerDate = date ? new Date(date as string) : new Date();
-      const prayerTimes = await getPrayerTimes(
-        parseFloat(settings.latitude),
-        parseFloat(settings.longitude),
-        prayerDate
-      );
+      let prayerTimes;
+      
+      // Try to get prayer times using city ID if available
+      if (settings.cityId) {
+        console.log(`Using city ID ${settings.cityId} to fetch prayer times`);
+        prayerTimes = await getPrayerTimesByCity(settings.cityId.toString(), prayerDate);
+      }
+      // Otherwise fall back to coordinates if available
+      else if (settings.latitude && settings.longitude) {
+        console.log(`Using coordinates (${settings.latitude}, ${settings.longitude}) to fetch prayer times`);
+        prayerTimes = await getPrayerTimes(
+          parseFloat(settings.latitude),
+          parseFloat(settings.longitude),
+          prayerDate
+        );
+      }
+      // If neither city ID nor coordinates are available
+      else {
+        return res.status(400).json({ message: "Location settings are not configured. Please select a city in Settings." });
+      }
       
       return res.json(prayerTimes);
     } catch (error) {
