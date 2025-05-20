@@ -1,0 +1,49 @@
+We are updating our worship tracking app on Replit and need to fix two critical issues related to user identification and notifications:
+
+---
+
+🔧 ISSUE 1: Incorrect user ID on saving worship_entries
+
+Problem:
+When a worship entry is saved through the frontend (UX/UI), it defaults to `user_id = 1`, instead of linking to the currently logged-in user. This leads to incorrect data for multi-user environments.
+
+Fix this:
+
+- Ensure that when saving a worship_entry from the frontend, the authenticated user's ID is captured and passed to the backend.
+- In the backend route (e.g., POST `/api/worship_entries/`), replace any default/static user_id with:
+  - The user ID from the auth token/session (e.g., request.user.id or similar depending on framework).
+- Confirm that the DB table includes a proper user_id foreign key constraint and that worship entries are filtered by that in views.
+
+Expected behavior:
+When any user logs in and saves a worship entry, the user_id stored in the database must match that user's account ID.
+
+---
+
+📣 ISSUE 2: Sending Telegram notifications to the correct user
+
+Problem:
+When sending notifications (e.g., prayer reminders or motivational quotes), the system is not using the actual Telegram ID of the logged-in user — it either sends it to a wrong user or fails.
+
+Fix this:
+
+- Make sure that each user’s Telegram ID is stored correctly in the user profile table (e.g., `users.telegram_id`).
+- When preparing a notification message, retrieve the correct Telegram ID of the target user and pass it to the bot.
+  - For example: sendTelegramMessage(user.telegram_id, message)
+- Ensure that the Telegram bot is authorized to send messages to this ID (user must have started the bot).
+
+Expected behavior:
+Each user receives notifications to their own Telegram account. No messages should be sent to a default or hardcoded ID.
+
+---
+
+✅ Summary of Changes Required:
+
+1. Worship Entries
+   - Capture and store the correct user_id from auth context.
+   - Remove any hardcoded user references.
+
+2. Telegram Notifications
+   - Use the telegram_id from the user profile.
+   - Ensure the Telegram bot uses that ID when sending messages.
+
+Please confirm if the authentication system (e.g., Supabase, JWT, sessions) is already in place — if not, we may need to hook that up first.

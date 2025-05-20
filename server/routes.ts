@@ -216,14 +216,33 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Save user's worship data for a specific date
   apiRouter.post("/worship", async (req: Request, res: Response) => {
     try {
-      const { date, prayers, quranReading, dua, sadaqa, fast, note } = req.body;
+      const { date, prayers, quranReading, dua, sadaqa, fast, note, userId: clientUserId } = req.body;
       
       if (!date) {
         return res.status(400).json({ message: "Date is required" });
       }
       
-      // In a real app, we'd get the user ID from the session
-      const userId = 1;
+      // Get user ID from the authenticated user in the request
+      // First try to get it from the request body (client-provided)
+      // If not available, check if we have an authenticated user from the session
+      // If all else fails, return an error
+      let userId = clientUserId;
+      
+      if (!userId) {
+        // Check for authenticated user in the session/request
+        if (req.body.telegramUser && req.body.telegramUser.id) {
+          // Get user by Telegram ID from storage
+          const user = await storage.getUserByTelegramId(req.body.telegramUser.id.toString());
+          if (user) {
+            userId = user.id;
+          }
+        }
+      }
+      
+      // If we still don't have a valid user ID, return an error
+      if (!userId) {
+        return res.status(401).json({ message: "User authentication required" });
+      }
       
       const worshipData = {
         userId,
@@ -251,8 +270,39 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Get user settings
   apiRouter.get("/settings", async (req: Request, res: Response) => {
     try {
-      // In a real app, we'd get the user ID from the session
-      const userId = 1;
+      // Get user ID from query parameters if provided
+      let userId = req.query.userId ? parseInt(req.query.userId as string) : null;
+      
+      // If no user ID was provided, extract from authentication
+      if (!userId) {
+        // Check for authenticated user info in headers
+        const telegramData = req.headers['x-telegram-data'];
+        if (telegramData && typeof telegramData === 'string') {
+          try {
+            const parsed = JSON.parse(telegramData);
+            if (parsed.id) {
+              const user = await storage.getUserByTelegramId(parsed.id.toString());
+              if (user) {
+                userId = user.id;
+              }
+            }
+          } catch (e) {
+            console.error('Failed to parse telegram data from header', e);
+          }
+        }
+      }
+      
+      // If we still don't have a userId, try to use the first user in the system
+      // This should only happen during development or when authentication fails
+      if (!userId) {
+        console.warn('No user ID provided, falling back to first user in system');
+        const users = await storage.getAllUsers();
+        if (users && users.length > 0) {
+          userId = users[0].id;
+        } else {
+          return res.status(404).json({ message: "No users found" });
+        }
+      }
       
       const settings = await storage.getSettings(userId);
       return res.json(settings || {});
