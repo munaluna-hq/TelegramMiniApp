@@ -7,10 +7,10 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { MapPin, User, CheckCircle, Bell } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { MapPin, User, CheckCircle, Bell, Search } from "lucide-react";
 import { getTelegramUser, showAlert } from "@/lib/telegram";
 import { useToast } from "@/hooks/use-toast";
-import { useGeolocation } from "@/hooks/use-geolocation";
 import NotificationLink from "@/components/NotificationLink";
 
 export default function Settings() {
@@ -27,7 +27,15 @@ export default function Settings() {
   // Track notification test status
   const [isSendingTestNotification, setIsSendingTestNotification] = useState(false);
 
+  // Add a query to fetch cities
+  const { data: cities, isLoading: isLoadingCities } = useQuery({
+    queryKey: ['/api/cities'],
+    queryFn: () => apiRequest('GET', '/api/cities'),
+  });
+
   const [formData, setFormData] = useState({
+    cityId: 0,
+    cityName: "",
     city: "",
     latitude: "",
     longitude: "",
@@ -41,10 +49,23 @@ export default function Settings() {
     cycleDays: 28
   });
 
+  // Define interface for cities
+  interface City {
+    id: number;
+    name: string;
+    name_kz: string;
+    name_ru: string;
+    lat: number;
+    lng: number;
+    elevation: number;
+  }
+
   // Define interface for settings
   interface UserSettings {
     id?: number;
     userId?: number;
+    cityId?: number;
+    cityName?: string;
     city?: string;
     latitude?: string;
     longitude?: string;
@@ -66,6 +87,8 @@ export default function Settings() {
       
       // Create a new settings object with default values for missing properties
       const updatedFormData = {
+        cityId: userSettings.cityId || 0,
+        cityName: userSettings.cityName || "",
         city: userSettings.city || "",
         latitude: userSettings.latitude || "",
         longitude: userSettings.longitude || "",
@@ -222,6 +245,8 @@ export default function Settings() {
     // Ensure all fields are correctly formatted and typed
     const settings = {
       ...formData,
+      // Ensure cityId is a number
+      cityId: Number(formData.cityId),
       // Make sure notification time is valid
       notificationTime: ["exact", "5min", "10min"].includes(formData.notificationTime) 
         ? formData.notificationTime 
@@ -241,23 +266,28 @@ export default function Settings() {
     updateSettingsMutation.mutate(settings);
   };
 
-  // Use our custom geolocation hook
-  const { detectLocation, latitude, longitude, city, error, loading } = useGeolocation();
-  
-  // Effect to update form when geolocation is obtained
-  useEffect(() => {
-    if (latitude && longitude) {
-      setFormData(prev => ({
+  // Function to handle city selection
+  const handleCityChange = (cityId: string) => {
+    if (!cities || !Array.isArray(cities)) return;
+    
+    const selectedCity = cities.find((city: City) => city.id === parseInt(cityId));
+    
+    if (selectedCity) {
+      setFormData((prev) => ({
         ...prev,
-        latitude,
-        longitude,
-        city: city || prev.city, // Use detected city or keep current one
+        cityId: selectedCity.id,
+        cityName: selectedCity.name_ru || selectedCity.name,
+        latitude: selectedCity.lat.toString(),
+        longitude: selectedCity.lng.toString(),
+        // Keep the legacy city field for backward compatibility
+        city: selectedCity.name_ru || selectedCity.name
       }));
+      
+      toast({
+        title: "Город выбран",
+        description: `Выбран город: ${selectedCity.name_ru || selectedCity.name}`,
+      });
     }
-  }, [latitude, longitude, city]);
-  
-  const handleDetectLocation = () => {
-    detectLocation();
   };
 
   return (
@@ -271,49 +301,41 @@ export default function Settings() {
           <div className="space-y-4">
             <div>
               <Label htmlFor="city" className="block text-sm text-gray-600 mb-1">
-                Город
+                Выберите город
               </Label>
-              <Input
-                id="city"
-                className="w-full"
-                placeholder="Москва"
-                value={formData.city}
-                onChange={handleInputChange}
-              />
+              <Select 
+                value={formData.cityId ? formData.cityId.toString() : ""} 
+                onValueChange={handleCityChange}
+              >
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Выберите город из списка" />
+                </SelectTrigger>
+                <SelectContent>
+                  {isLoadingCities ? (
+                    <div className="p-2 text-center">Загрузка городов...</div>
+                  ) : cities && cities.length > 0 ? (
+                    cities.map((city: City) => (
+                      <SelectItem key={city.id} value={city.id.toString()}>
+                        {city.name_ru || city.name}
+                      </SelectItem>
+                    ))
+                  ) : (
+                    <div className="p-2 text-center">Не удалось загрузить список городов</div>
+                  )}
+                </SelectContent>
+              </Select>
             </div>
-            <div className="flex gap-3">
-              <div className="flex-1">
-                <Label htmlFor="latitude" className="block text-sm text-gray-600 mb-1">
-                  Широта
-                </Label>
-                <Input
-                  id="latitude"
-                  className="w-full"
-                  placeholder="55.7558"
-                  value={formData.latitude}
-                  onChange={handleInputChange}
-                />
+            
+            {formData.cityId > 0 && (
+              <div className="mt-2 p-2 bg-gray-50 rounded-md">
+                <p className="text-sm text-gray-600">
+                  <span className="font-medium">Выбранный город:</span> {formData.cityName}
+                </p>
+                <p className="text-xs text-gray-500">
+                  Координаты: {formData.latitude}, {formData.longitude}
+                </p>
               </div>
-              <div className="flex-1">
-                <Label htmlFor="longitude" className="block text-sm text-gray-600 mb-1">
-                  Долгота
-                </Label>
-                <Input
-                  id="longitude"
-                  className="w-full"
-                  placeholder="37.6173"
-                  value={formData.longitude}
-                  onChange={handleInputChange}
-                />
-              </div>
-            </div>
-            <Button
-              type="button"
-              className="w-full"
-              onClick={handleDetectLocation}
-            >
-              <MapPin className="h-4 w-4 mr-2" /> Определить автоматически
-            </Button>
+            )}
           </div>
         </div>
 
