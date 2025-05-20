@@ -61,17 +61,19 @@ export default function Settings() {
   // Update form data when settings are loaded
   useEffect(() => {
     if (settings) {
+      console.log("Loading settings:", settings);
       const userSettings = settings as UserSettings;
       setFormData({
         city: userSettings.city || "",
         latitude: userSettings.latitude || "",
         longitude: userSettings.longitude || "",
         notificationTime: userSettings.notificationTime || "exact",
-        notifyFajr: userSettings.notifyFajr || false,
-        notifyZuhr: userSettings.notifyZuhr || true,
-        notifyAsr: userSettings.notifyAsr || true,
-        notifyMaghrib: userSettings.notifyMaghrib || true,
-        notifyIsha: userSettings.notifyIsha || true,
+        // Use null coalescing to properly handle false values
+        notifyFajr: userSettings.notifyFajr ?? false,
+        notifyZuhr: userSettings.notifyZuhr ?? true,
+        notifyAsr: userSettings.notifyAsr ?? true,
+        notifyMaghrib: userSettings.notifyMaghrib ?? true,
+        notifyIsha: userSettings.notifyIsha ?? true,
         menstruationDays: userSettings.menstruationDays || 5,
         cycleDays: userSettings.cycleDays || 28
       });
@@ -98,8 +100,8 @@ export default function Settings() {
       // Log success message in development
       console.log("Settings saved successfully");
       
-      // Refresh settings data
-      queryClient.invalidateQueries({ queryKey: ['/api/settings'] });
+      // Refresh settings data with the correct user ID
+      queryClient.invalidateQueries({ queryKey: ['/api/settings', userId] });
     },
     onError: (error) => {
       toast({
