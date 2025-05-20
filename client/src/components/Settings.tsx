@@ -28,9 +28,12 @@ export default function Settings() {
   const [isSendingTestNotification, setIsSendingTestNotification] = useState(false);
 
   // Add a query to fetch cities
-  const { data: cities, isLoading: isLoadingCities } = useQuery({
+  const { data: cities, isLoading: isLoadingCities } = useQuery<City[]>({
     queryKey: ['/api/cities'],
-    queryFn: () => apiRequest('GET', '/api/cities'),
+    queryFn: async () => {
+      const response = await apiRequest('GET', '/api/cities');
+      return response as City[];
+    }
   });
 
   const [formData, setFormData] = useState({
@@ -313,7 +316,7 @@ export default function Settings() {
                 <SelectContent>
                   {isLoadingCities ? (
                     <div className="p-2 text-center">Загрузка городов...</div>
-                  ) : cities && cities.length > 0 ? (
+                  ) : cities && Array.isArray(cities) && cities.length > 0 ? (
                     cities.map((city: City) => (
                       <SelectItem key={city.id} value={city.id.toString()}>
                         {city.name_ru || city.name}
