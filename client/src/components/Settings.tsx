@@ -207,7 +207,19 @@ export default function Settings() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    updateSettingsMutation.mutate(formData);
+    console.log("Submitting settings form data:", formData);
+    
+    // Ensure boolean fields are properly converted to boolean values
+    const settings = {
+      ...formData,
+      notifyFajr: Boolean(formData.notifyFajr),
+      notifyZuhr: Boolean(formData.notifyZuhr),
+      notifyAsr: Boolean(formData.notifyAsr),
+      notifyMaghrib: Boolean(formData.notifyMaghrib),
+      notifyIsha: Boolean(formData.notifyIsha)
+    };
+    
+    updateSettingsMutation.mutate(settings);
   };
 
   // Use our custom geolocation hook

@@ -298,6 +298,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Save user settings
   apiRouter.post("/settings", async (req: Request, res: Response) => {
     try {
+      console.log("Received settings update request:", req.body);
+      
       const settingsSchema = z.object({
         userId: z.number().optional(), // Allow specifying userId in the request
         city: z.string().optional(),
@@ -313,7 +315,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
         cycleDays: z.number().min(21).max(45)
       });
       
-      const validatedSettings = settingsSchema.parse(req.body);
+      // Convert any string 'true'/'false' values to actual booleans before validation
+      const processedData = {
+        ...req.body,
+        notifyFajr: req.body.notifyFajr === 'true' ? true : (req.body.notifyFajr === 'false' ? false : Boolean(req.body.notifyFajr)),
+        notifyZuhr: req.body.notifyZuhr === 'true' ? true : (req.body.notifyZuhr === 'false' ? false : Boolean(req.body.notifyZuhr)),
+        notifyAsr: req.body.notifyAsr === 'true' ? true : (req.body.notifyAsr === 'false' ? false : Boolean(req.body.notifyAsr)),
+        notifyMaghrib: req.body.notifyMaghrib === 'true' ? true : (req.body.notifyMaghrib === 'false' ? false : Boolean(req.body.notifyMaghrib)),
+        notifyIsha: req.body.notifyIsha === 'true' ? true : (req.body.notifyIsha === 'false' ? false : Boolean(req.body.notifyIsha))
+      };
+      
+      console.log("Processed data before validation:", processedData);
+      
+      const validatedSettings = settingsSchema.parse(processedData);
       
       // Get user ID from the request body, query params, or default to 1
       const userId = validatedSettings.userId || 
