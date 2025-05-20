@@ -171,7 +171,7 @@ export async function getPrayerTimesByCity(cityId: string, date: Date): Promise<
 }
 
 // Get available cities from Muftyat.kz API
-export async function getCities(): Promise<City[]> {
+export async function getCities(): Promise<CitiesResponse> {
   try {
     const url = 'https://api.muftyat.kz/cities';
     console.log(`Fetching cities from: ${url}`);
@@ -183,9 +183,7 @@ export async function getCities(): Promise<City[]> {
     }
     
     const data = await response.json() as CitiesResponse;
-    
-    // Return just the results array which contains the cities
-    return data.results || [];
+    return data;
   } catch (error) {
     console.error("Error fetching cities:", error);
     throw error;

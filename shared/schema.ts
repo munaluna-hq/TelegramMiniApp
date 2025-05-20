@@ -109,3 +109,28 @@ export const insertSettingsSchema = createInsertSchema(settingsTable).pick({
 
 export type InsertSettings = z.infer<typeof insertSettingsSchema>;
 export type Settings = typeof settingsTable.$inferSelect;
+
+// Cities table to store city data from Muftyat.kz API
+export const cities = pgTable("cities", {
+  id: serial("id").primaryKey(),
+  apiId: integer("api_id").notNull().unique(), // ID from Muftyat.kz API
+  title: text("title").notNull(),              // City name
+  lat: text("lat").notNull(),                  // Latitude
+  lng: text("lng").notNull(),                  // Longitude
+  timezone: text("timezone"),                  // Timezone (if available)
+  region: text("region"),                      // Region of the city
+  district: text("district"),                  // District (if available)
+});
+
+export const insertCitySchema = createInsertSchema(cities).pick({
+  apiId: true,
+  title: true,
+  lat: true,
+  lng: true,
+  timezone: true,
+  region: true,
+  district: true,
+});
+
+export type InsertCity = z.infer<typeof insertCitySchema>;
+export type City = typeof cities.$inferSelect;
