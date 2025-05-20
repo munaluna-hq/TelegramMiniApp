@@ -182,8 +182,10 @@ export async function getCities(): Promise<City[]> {
       throw new Error(`Failed to fetch cities: ${response.statusText}`);
     }
     
-    const cities = await response.json() as City[];
-    return cities;
+    const data = await response.json() as CitiesResponse;
+    
+    // Return just the results array which contains the cities
+    return data.results || [];
   } catch (error) {
     console.error("Error fetching cities:", error);
     throw error;
