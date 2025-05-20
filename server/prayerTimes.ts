@@ -25,7 +25,18 @@ export interface PrayerTimes {
   date: string;
 }
 
-// Get prayer times from Muftyat.kz API
+// Interface for Muftyat.kz cities API response
+export interface City {
+  id: number;
+  name: string;
+  name_kz: string;
+  name_ru: string;
+  lat: number;
+  lng: number;
+  elevation: number;
+}
+
+// Get prayer times from Muftyat.kz API using coordinates
 export async function getPrayerTimes(latitude: number, longitude: number, date: Date): Promise<PrayerTimes> {
   try {
     // Format the year
@@ -84,6 +95,89 @@ export async function getPrayerTimes(latitude: number, longitude: number, date: 
     };
   } catch (error) {
     console.error("Error fetching prayer times:", error);
+    throw error;
+  }
+}
+
+// Get prayer times by city ID
+export async function getPrayerTimesByCity(cityId: string, date: Date): Promise<PrayerTimes> {
+  try {
+    // Format the year
+    const year = format(date, "yyyy");
+    
+    // Format the full date for returning in the result
+    const formattedDate = format(date, "dd-MM-yyyy");
+    
+    // Construct the URL for the Muftyat.kz API with city ID
+    const url = `https://api.muftyat.kz/prayer-times/${year}/city/${cityId}`;
+    
+    console.log(`Fetching prayer times for city ID ${cityId} from: ${url}`);
+    
+    const response = await fetch(url);
+    
+    if (!response.ok) {
+      throw new Error(`Failed to fetch prayer times: ${response.statusText}`);
+    }
+    
+    const data = await response.json() as MuftyatPrayerTimesResponse;
+    
+    // Find the prayer times for the requested date
+    // The API returns times for the whole year, so we need to find the correct day
+    const dayOfYear = getDayOfYear(date);
+    const dayData = data.times[dayOfYear - 1]; // Adjust for 0-indexed array
+    
+    if (!dayData) {
+      throw new Error(`No prayer times found for ${formattedDate}`);
+    }
+    
+    // Calculate approximate midnight (midpoint between maghrib and fajr of next day)
+    // If it's the last day of the year, use approximate fixed midnight
+    let midnight = "00:00";
+    try {
+      if (dayOfYear < data.times.length) {
+        const nextDayFajr = data.times[dayOfYear].fadjr;
+        midnight = calculateMidnight(dayData.maghrib, nextDayFajr);
+      } else {
+        // For the last day of the year, use maghrib + 5 hours as an approximation
+        midnight = addHoursToTime(dayData.maghrib, 5);
+      }
+    } catch (e) {
+      console.warn("Could not calculate midnight, using default:", e);
+    }
+    
+    // Convert to simplified format
+    return {
+      fajr: formatTime(dayData.fadjr),
+      sunrise: formatTime(dayData.sunrise),
+      zuhr: formatTime(dayData.dhuhr),
+      asr: formatTime(dayData.asr),
+      maghrib: formatTime(dayData.maghrib),
+      isha: formatTime(dayData.isha),
+      midnight: formatTime(midnight),
+      date: formattedDate
+    };
+  } catch (error) {
+    console.error("Error fetching prayer times:", error);
+    throw error;
+  }
+}
+
+// Get available cities from Muftyat.kz API
+export async function getCities(): Promise<City[]> {
+  try {
+    const url = 'https://api.muftyat.kz/cities';
+    console.log(`Fetching cities from: ${url}`);
+    
+    const response = await fetch(url);
+    
+    if (!response.ok) {
+      throw new Error(`Failed to fetch cities: ${response.statusText}`);
+    }
+    
+    const cities = await response.json() as City[];
+    return cities;
+  } catch (error) {
+    console.error("Error fetching cities:", error);
     throw error;
   }
 }
