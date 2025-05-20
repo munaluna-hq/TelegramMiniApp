@@ -103,8 +103,12 @@ export function useGeolocation() {
   // Function to save location to user settings
   const saveLocationToSettings = async (latitude: string, longitude: string, city: string) => {
     try {
-      // First get current settings
-      const response = await fetch("/api/settings");
+      // Get user ID from localStorage for proper data isolation
+      const userId = localStorage.getItem('userId') || "1";
+      console.log(`Saving location to settings for user ID: ${userId}`);
+      
+      // First get current settings with the correct user ID
+      const response = await fetch(`/api/settings?userId=${userId}`);
       let settings = await response.json();
       
       // If settings are missing or incomplete, provide default values to ensure
