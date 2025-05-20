@@ -75,11 +75,9 @@ export type Worship = typeof worshipEntries.$inferSelect;
 export const settingsTable = pgTable("settings", {
   id: serial("id").primaryKey(),
   userId: integer("user_id").notNull().unique(),
-  cityId: integer("city_id"),  // ID of selected city from Muftyat.kz API
-  cityName: text("city_name"), // Name of the city for display
-  city: text("city"),          // Legacy field kept for backward compatibility
-  latitude: text("latitude"),  // Legacy field kept for backward compatibility
-  longitude: text("longitude"),// Legacy field kept for backward compatibility
+  city: text("city"),
+  latitude: text("latitude"),
+  longitude: text("longitude"),
   notificationTime: text("notification_time").notNull(), // exact, 5min, 10min
   notifyFajr: boolean("notify_fajr").notNull(),
   notifyZuhr: boolean("notify_zuhr").notNull(),
@@ -92,8 +90,6 @@ export const settingsTable = pgTable("settings", {
 
 export const insertSettingsSchema = createInsertSchema(settingsTable).pick({
   userId: true,
-  cityId: true,
-  cityName: true,
   city: true,
   latitude: true,
   longitude: true,
@@ -109,28 +105,3 @@ export const insertSettingsSchema = createInsertSchema(settingsTable).pick({
 
 export type InsertSettings = z.infer<typeof insertSettingsSchema>;
 export type Settings = typeof settingsTable.$inferSelect;
-
-// Cities table to store city data from Muftyat.kz API
-export const cities = pgTable("cities", {
-  id: serial("id").primaryKey(),
-  apiId: integer("api_id").notNull().unique(), // ID from Muftyat.kz API
-  title: text("title").notNull(),              // City name
-  lat: text("lat").notNull(),                  // Latitude
-  lng: text("lng").notNull(),                  // Longitude
-  timezone: text("timezone"),                  // Timezone (if available)
-  region: text("region"),                      // Region of the city
-  district: text("district"),                  // District (if available)
-});
-
-export const insertCitySchema = createInsertSchema(cities).pick({
-  apiId: true,
-  title: true,
-  lat: true,
-  lng: true,
-  timezone: true,
-  region: true,
-  district: true,
-});
-
-export type InsertCity = z.infer<typeof insertCitySchema>;
-export type City = typeof cities.$inferSelect;

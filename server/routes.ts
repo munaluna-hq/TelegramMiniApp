@@ -3,9 +3,7 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { addDays, format, parseISO } from "date-fns";
 import { z } from "zod";
-import { getPrayerTimes, getPrayerTimesByCity, getCities } from "./prayerTimes";
-import { db } from "./db";
-import * as schema from "../shared/schema";
+import { getPrayerTimes } from "./prayerTimes";
 import { verifyTelegramData, getDevModeNotifications } from "./telegram";
 import { calculateCycleDays } from "../client/src/lib/cycleCalculations";
 import { 
@@ -161,102 +159,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
-  // Get available cities from our database (synced from Muftyat.kz API)
-  apiRouter.get("/cities", async (req: Request, res: Response) => {
-    try {
-      // First try to get cities from the database
-      const dbCities = await db.select().from(schema.cities);
-      
-      // If we have cities in the database, return them
-      if (dbCities && dbCities.length > 0) {
-        console.log(`Returning ${dbCities.length} cities from database`);
-        return res.json({ 
-          count: dbCities.length,
-          results: dbCities 
-        });
-      }
-      
-      // Otherwise, fetch them from Muftyat.kz API and store them
-      console.log("No cities in database, fetching from API and storing");
-      const apiCitiesResponse = await getCities();
-      
-      // If we got cities from the API, store them in the database
-      if (apiCitiesResponse && apiCitiesResponse.results && apiCitiesResponse.results.length > 0) {
-        const apiCities = apiCitiesResponse.results;
-        console.log(`Storing ${apiCities.length} cities in database`);
-        
-        // Insert cities in batches to avoid overloading the database
-        const BATCH_SIZE = 100;
-        for (let i = 0; i < apiCities.length; i += BATCH_SIZE) {
-          const batch = apiCities.slice(i, i + BATCH_SIZE);
-          const citiesToInsert = batch.map(city => ({
-            apiId: city.id,
-            title: city.title,
-            lat: city.lat,
-            lng: city.lng,
-            timezone: city.timezone,
-            region: city.region,
-            district: city.district
-          }));
-          
-          await db.insert(schema.cities).values(citiesToInsert).onConflictDoNothing();
-        }
-        
-        // Fetch the newly stored cities from the database
-        const storedCities = await db.select().from(schema.cities);
-        console.log(`Stored and returning ${storedCities.length} cities`);
-        
-        return res.json({ 
-          count: storedCities.length,
-          results: storedCities 
-        });
-      }
-      
-      // If we couldn't get cities from API either, return empty array
-      return res.json({ count: 0, results: [] });
-    } catch (error) {
-      console.error("Error fetching/storing cities:", error);
-      return res.status(500).json({ message: "Failed to fetch cities" });
-    }
-  });
-  
   // Get prayer times for a specific date
   apiRouter.get("/prayer-times", async (req: Request, res: Response) => {
     try {
-      const { date, userId: userIdParam } = req.query;
+      const { date } = req.query;
       
-      // Use user ID from query or default to 1
-      const userId = userIdParam ? parseInt(userIdParam as string) : 1;
+      // In a real app, we'd get the user ID from the session
+      const userId = 1;
       
-      // Get user's settings
+      // Get user's location from settings
       const settings = await storage.getSettings(userId);
       
-      if (!settings) {
-        return res.status(400).json({ message: "User settings not found" });
+      if (!settings || !settings.latitude || !settings.longitude) {
+        return res.status(400).json({ message: "Location settings are not configured" });
       }
       
       // Get prayer times
       const prayerDate = date ? new Date(date as string) : new Date();
-      let prayerTimes;
-      
-      // Try to get prayer times using city ID if available
-      if (settings.cityId) {
-        console.log(`Using city ID ${settings.cityId} to fetch prayer times`);
-        prayerTimes = await getPrayerTimesByCity(settings.cityId.toString(), prayerDate);
-      }
-      // Otherwise fall back to coordinates if available
-      else if (settings.latitude && settings.longitude) {
-        console.log(`Using coordinates (${settings.latitude}, ${settings.longitude}) to fetch prayer times`);
-        prayerTimes = await getPrayerTimes(
-          parseFloat(settings.latitude),
-          parseFloat(settings.longitude),
-          prayerDate
-        );
-      }
-      // If neither city ID nor coordinates are available
-      else {
-        return res.status(400).json({ message: "Location settings are not configured. Please select a city in Settings." });
-      }
+      const prayerTimes = await getPrayerTimes(
+        parseFloat(settings.latitude),
+        parseFloat(settings.longitude),
+        prayerDate
+      );
       
       return res.json(prayerTimes);
     } catch (error) {
