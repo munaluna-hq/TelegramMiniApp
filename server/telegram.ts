@@ -52,13 +52,8 @@ const devModeNotifications: DevNotification[] = [];
 // Send notification via Telegram Bot API
 export async function sendTelegramNotification(telegramId: string, message: string): Promise<boolean> {
   try {
-    // Ensure we're working with a valid telegram ID
-    if (!telegramId || telegramId === 'undefined' || telegramId === 'null') {
-      console.error("Invalid Telegram ID provided");
-      return false;
-    }
-    
     // First, store the notification for development mode display
+    // (this will work in both dev and production, providing a backup log)
     console.log(`Notification to user ${telegramId}: ${message}`);
     
     // Strip HTML tags for cleaner display in dev mode
@@ -75,85 +70,43 @@ export async function sendTelegramNotification(telegramId: string, message: stri
       devModeNotifications.shift();
     }
     
-    // Skip actual delivery in local dev mode if it's the mock user ID
-    // This prevents console errors while still allowing us to test the flow
-    if (process.env.NODE_ENV === 'development' && telegramId === '12345') {
-      console.log("Development mode: Skipping actual delivery for mock user");
-      return true;
-    }
-    
     // Now try to send the actual Telegram notification
     if (!process.env.TELEGRAM_BOT_TOKEN) {
       console.error("Telegram bot token not configured");
       return false;
     }
     
-    const botToken = process.env.TELEGRAM_BOT_TOKEN;
-    
-    // Make the API call to Telegram - don't validate the bot first to reduce latency
-    const apiUrl = `https://api.telegram.org/bot${botToken}/sendMessage`;
+    // Make the API call to Telegram
+    const apiUrl = `https://api.telegram.org/bot${process.env.TELEGRAM_BOT_TOKEN}/sendMessage`;
     
     const requestBody = {
       chat_id: telegramId,
       text: message,
-      parse_mode: "HTML",
-      disable_notification: false  // Ensure notification is sent with sound
+      parse_mode: "HTML"
     };
     
-    console.log(`Sending notification to Telegram user ID: ${telegramId}`);
+    console.log(`Sending Telegram API request to: ${apiUrl}`);
+    console.log(`With payload: ${JSON.stringify(requestBody)}`);
     
-    // Try with a timeout to prevent hanging
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 10000);
+    const response = await fetch(apiUrl, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(requestBody),
+    });
     
-    try {
-      const response = await fetch(apiUrl, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(requestBody),
-        signal: controller.signal
-      });
-      
-      clearTimeout(timeoutId);
-      
-      // Parse response
-      const data = await response.json() as any;
-      
-      if (!data.ok) {
-        console.error(`Telegram API error: ${data.description}`);
-        
-        // Troubleshooting specific errors
-        if (data.description?.includes("chat not found")) {
-          console.error("Error: The user has not started a conversation with the bot yet");
-          console.error("User must send /start to the bot before receiving messages");
-          
-          // Try to fall back to direct message using TelegramWebhook approach as a last resort
-          // if this was a real user (not development mode)
-          if (telegramId !== '12345') {
-            try {
-              const { sendTelegramMessage } = await import('./telegram-webhook');
-              await sendTelegramMessage(telegramId, message);
-            } catch (fallbackError) {
-              console.error("Failed to send fallback message:", fallbackError);
-            }
-          }
-        } else if (data.description?.includes("bot was blocked")) {
-          console.error("Error: The user has blocked the bot");
-        }
-      } else {
-        console.log(`✅ Notification successfully sent to Telegram user ${telegramId}`);
-      }
-      
-      return data.ok === true;
-    } catch (fetchError) {
-      console.error("Error sending notification:", fetchError);
-      clearTimeout(timeoutId);
-      return false;
+    const data = await response.json() as any;
+    
+    if (!data.ok) {
+      console.error(`Telegram API error: ${data.description}`);
+    } else {
+      console.log(`Telegram notification successfully sent to user ${telegramId}`);
     }
+    
+    return data.ok === true;
   } catch (error) {
-    console.error("Error in notification process:", error);
+    console.error("Error sending Telegram notification:", error);
     return false;
   }
 }

@@ -11,72 +11,46 @@ export interface TelegramUser {
 
 // Function to get Telegram Web App data
 export function getTelegramUser(): TelegramUser | null {
-  // Check if we're in the Telegram WebApp environment
   if (window.Telegram && window.Telegram.WebApp) {
-    // Try to get user data from Telegram WebApp
-    if (window.Telegram.WebApp.initDataUnsafe && window.Telegram.WebApp.initDataUnsafe.user) {
-      const userData = window.Telegram.WebApp.initDataUnsafe.user;
-      console.log("Telegram user data found:", userData);
+    if (!window.Telegram.WebApp.initDataUnsafe || !window.Telegram.WebApp.initDataUnsafe.user) {
+      console.log("Telegram WebApp found, but no user data available yet. This is normal on initial load.");
       
-      // Ensure we have a valid numeric ID that can be used for notifications
-      if (userData.id) {
-        return userData as TelegramUser;
-      } else {
-        console.warn("Telegram user data found but ID is missing, generating unique ID");
-        // Generate a unique ID based on current timestamp to avoid data collision
-        const uniqueId = Math.floor(Date.now() / 1000) + Math.floor(Math.random() * 10000);
-        return {
-          ...userData,
-          id: uniqueId,
-          auth_date: userData.auth_date || Math.floor(Date.now() / 1000),
-          hash: userData.hash || "telegram_data_hash"
-        } as TelegramUser;
-      }
-    } else {
-      console.log("Telegram WebApp found, but no user data available yet.");
-      
-      // For development/testing only - return mock user with unique ID
+      // For development/testing only - return mock user if in development mode
       if (process.env.NODE_ENV === 'development') {
-        // Generate a unique ID to ensure data isolation in development
-        const devUniqueId = Math.floor(Date.now() / 1000) + Math.floor(Math.random() * 10000);
-        console.log("Development mode: Using mock user data with unique ID for data isolation");
+        console.log("Development mode: Using mock user data");
         return {
-          id: devUniqueId,
+          id: 12345,
           first_name: "Test",
           last_name: "User",
-          username: "testuser_" + devUniqueId,
+          username: "testuser",
           auth_date: Math.floor(Date.now() / 1000),
           hash: "mock_hash"
         };
       }
       
-      // Generate a unique session ID to avoid data collisions
-      const sessionUniqueId = Math.floor(Date.now() / 1000) + Math.floor(Math.random() * 10000);
-      console.log("Using session-specific unique ID for data isolation");
-      return {
-        id: sessionUniqueId,
-        first_name: "Telegram",
-        last_name: "User",
-        auth_date: Math.floor(Date.now() / 1000),
-        hash: "fallback_hash"
-      };
+      return null;
     }
+    
+    console.log("Telegram user data found:", window.Telegram.WebApp.initDataUnsafe.user);
+    return window.Telegram.WebApp.initDataUnsafe.user as TelegramUser;
   }
   
-  console.warn("Telegram Web App not found, using mock data with unique ID");
+  console.warn("Telegram Web App not found");
   
-  // Generate unique ID for browser testing to ensure data isolation
-  const browserUniqueId = Math.floor(Date.now() / 1000) + Math.floor(Math.random() * 10000);
+  // For development/testing only - return mock user if in development mode
+  if (process.env.NODE_ENV === 'development') {
+    console.log("Development mode: Using mock user data with actual user");
+    return {
+      id: 123456789, // Numeric ID
+      first_name: "Guljan",
+      last_name: "",
+      username: "iamguljan", // This is the real username, but Telegram needs numeric ID
+      auth_date: Math.floor(Date.now() / 1000),
+      hash: "mock_hash"
+    };
+  }
   
-  // If we're not in a Telegram environment, provide a unique user for testing
-  return {
-    id: browserUniqueId,
-    first_name: "Test",
-    last_name: "User",
-    username: "testuser_" + browserUniqueId,
-    auth_date: Math.floor(Date.now() / 1000),
-    hash: "mock_hash"
-  };
+  return null;
 }
 
 // Get Telegram initData for validation on the server

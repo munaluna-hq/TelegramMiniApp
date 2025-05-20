@@ -1,8 +1,7 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { apiRequest } from '@/lib/queryClient';
 import { queryClient } from '@/lib/queryClient';
 import { useToast } from '@/hooks/use-toast';
-import { getTelegramUser } from '@/lib/telegram';
 
 interface GeolocationState {
   latitude: string | null;
@@ -18,7 +17,7 @@ export function useGeolocation() {
     longitude: null,
     city: null,
     error: null,
-    loading: false
+    loading: true
   });
   
   const { toast } = useToast();
@@ -42,7 +41,9 @@ export function useGeolocation() {
           const latitude = position.coords.latitude.toFixed(6);
           const longitude = position.coords.longitude.toFixed(6);
           
-          // Get city name (in a real app would use reverse geocoding)
+          // Get city name using reverse geocoding API
+          // For simplicity, we'll just set a placeholder city name
+          // In a real application, you could use a reverse geocoding service
           const city = "Определено автоматически";
           
           // Save to state
@@ -83,6 +84,7 @@ export function useGeolocation() {
           loading: false 
         }));
         
+        // Show error toast
         toast({
           title: "❌ Ошибка геолокации",
           description: errorMessage,
@@ -101,37 +103,39 @@ export function useGeolocation() {
   // Function to save location to user settings
   const saveLocationToSettings = async (latitude: string, longitude: string, city: string) => {
     try {
-      // Get Telegram user data to ensure we're saving to the correct user
-      const telegramUser = getTelegramUser();
-      const userId = telegramUser?.id || 1;
+      // First get current settings
+      const response = await fetch("/api/settings");
+      let settings = await response.json();
       
-      console.log(`Saving location to settings for user ID: ${userId}`);
+      // If settings are missing or incomplete, provide default values to ensure
+      // we meet the schema requirements
+      if (!settings) {
+        settings = {};
+      }
       
-      // Get current settings for this user
-      const settings = await apiRequest('GET', `/api/settings?userId=${userId}`);
-      
-      // Create updated settings object with location data
+      // Make sure all required fields are present
       const updatedSettings = {
-        userId,
         latitude,
         longitude,
         city,
-        // Keep existing settings or use defaults
-        notificationTime: settings?.notificationTime || "exact",
-        notifyFajr: settings?.notifyFajr ?? false,
-        notifyZuhr: settings?.notifyZuhr ?? true,
-        notifyAsr: settings?.notifyAsr ?? true,
-        notifyMaghrib: settings?.notifyMaghrib ?? true,
-        notifyIsha: settings?.notifyIsha ?? true,
-        menstruationDays: settings?.menstruationDays || 5,
-        cycleDays: settings?.cycleDays || 28
+        // Include these required fields with defaults if they don't exist
+        notificationTime: settings.notificationTime || "exact",
+        notifyFajr: settings.notifyFajr !== undefined ? settings.notifyFajr : false,
+        notifyZuhr: settings.notifyZuhr !== undefined ? settings.notifyZuhr : true,
+        notifyAsr: settings.notifyAsr !== undefined ? settings.notifyAsr : true,
+        notifyMaghrib: settings.notifyMaghrib !== undefined ? settings.notifyMaghrib : true,
+        notifyIsha: settings.notifyIsha !== undefined ? settings.notifyIsha : true,
+        menstruationDays: settings.menstruationDays || 5,
+        cycleDays: settings.cycleDays || 28
       };
       
-      // Save updated settings to database
-      await apiRequest("POST", `/api/settings?userId=${userId}`, updatedSettings);
+      // Save updated settings
+      await apiRequest("POST", "/api/settings", updatedSettings);
       
-      // Update client data
-      queryClient.invalidateQueries({ queryKey: ['/api/settings', userId] });
+      // Invalidate settings query to refresh data
+      queryClient.invalidateQueries({ queryKey: ['/api/settings'] });
+      
+      // Also invalidate prayer times since they depend on location
       queryClient.invalidateQueries({ queryKey: ['/api/prayer-times'] });
       
       toast({

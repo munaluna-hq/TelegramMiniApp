@@ -11,15 +11,10 @@ import { MapPin, User, CheckCircle, Bell } from "lucide-react";
 import { getTelegramUser, showAlert } from "@/lib/telegram";
 import { useToast } from "@/hooks/use-toast";
 import { useGeolocation } from "@/hooks/use-geolocation";
-import NotificationLink from "@/components/NotificationLink";
 
 export default function Settings() {
-  const telegramUser = getTelegramUser();
-  const userId = telegramUser?.id || 1; // Get user ID from Telegram or default to 1
-  
   const { data: settings } = useQuery<any>({
-    queryKey: ['/api/settings', userId],
-    queryFn: () => apiRequest('GET', `/api/settings?userId=${userId}`),
+    queryKey: ['/api/settings'],
   });
   
   const { toast } = useToast();
@@ -61,40 +56,26 @@ export default function Settings() {
   // Update form data when settings are loaded
   useEffect(() => {
     if (settings) {
-      console.log("Loading settings from server:", settings);
       const userSettings = settings as UserSettings;
-      
-      // Create a new settings object with default values for missing properties
-      const updatedFormData = {
+      setFormData({
         city: userSettings.city || "",
         latitude: userSettings.latitude || "",
         longitude: userSettings.longitude || "",
-        // Make sure notification time is always one of the valid options
-        notificationTime: ["exact", "5min", "10min"].includes(userSettings.notificationTime || "") 
-          ? userSettings.notificationTime || "exact"
-          : "exact",
-        // Use null coalescing (??) operator to handle false values correctly
-        notifyFajr: userSettings.notifyFajr ?? false,
-        notifyZuhr: userSettings.notifyZuhr ?? true,
-        notifyAsr: userSettings.notifyAsr ?? true,
-        notifyMaghrib: userSettings.notifyMaghrib ?? true,
-        notifyIsha: userSettings.notifyIsha ?? true,
+        notificationTime: userSettings.notificationTime || "exact",
+        notifyFajr: userSettings.notifyFajr || false,
+        notifyZuhr: userSettings.notifyZuhr || true,
+        notifyAsr: userSettings.notifyAsr || true,
+        notifyMaghrib: userSettings.notifyMaghrib || true,
+        notifyIsha: userSettings.notifyIsha || true,
         menstruationDays: userSettings.menstruationDays || 5,
         cycleDays: userSettings.cycleDays || 28
-      };
-      
-      console.log("Setting form data to:", updatedFormData);
-      setFormData(updatedFormData);
+      });
     }
   }, [settings]);
 
   const updateSettingsMutation = useMutation({
     mutationFn: async (data: UserSettings) => {
-      // Add the user ID to the settings data to ensure it's updating the correct user
-      return apiRequest("POST", `/api/settings?userId=${userId}`, {
-        ...data,
-        userId: userId, // Include user ID to ensure settings are only applied to this user
-      });
+      return apiRequest("POST", "/api/settings", data);
     },
     onSuccess: () => {
       // Always show toast notification since it's more reliable
@@ -108,8 +89,8 @@ export default function Settings() {
       // Log success message in development
       console.log("Settings saved successfully");
       
-      // Refresh settings data with the correct user ID
-      queryClient.invalidateQueries({ queryKey: ['/api/settings', userId] });
+      // Refresh settings data
+      queryClient.invalidateQueries({ queryKey: ['/api/settings'] });
     },
     onError: (error) => {
       toast({
@@ -155,18 +136,12 @@ export default function Settings() {
     setIsSendingTestNotification(true);
     
     try {
-      // Log the Telegram ID we're using
-      console.log("Sending notification to Telegram ID:", userTelegramId);
-      
-      // Use our new direct test endpoint for improved reliability
-      const response = await fetch('/api/send-direct-test', {
+      const response = await fetch('/api/send-test-notification', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ 
-          telegramId: userTelegramId.toString() 
-        }),
+        body: JSON.stringify({ telegramId: userTelegramId.toString() }),
       });
       
       const data = await response.json();
@@ -183,9 +158,6 @@ export default function Settings() {
           description: data.message || "Не удалось отправить тестовое уведомление",
           variant: "destructive",
         });
-        
-        // Log the error for debugging
-        console.error("Failed to send notification:", data);
       }
     } catch (error) {
       console.error("Error sending test notification:", error);
@@ -200,7 +172,6 @@ export default function Settings() {
   };
 
   const handleRadioChange = (name: string, value: string) => {
-    console.log(`Radio changed: ${name} = ${value}`);
     setFormData((prev) => ({
       ...prev,
       [name]: value,
@@ -208,7 +179,6 @@ export default function Settings() {
   };
 
   const handleSwitchChange = (id: string, checked: boolean) => {
-    console.log(`Switch changed: ${id} = ${checked}`);
     setFormData((prev) => ({
       ...prev,
       [id]: checked,
@@ -217,28 +187,7 @@ export default function Settings() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    console.log("Submitting settings form data:", formData);
-    
-    // Ensure all fields are correctly formatted and typed
-    const settings = {
-      ...formData,
-      // Make sure notification time is valid
-      notificationTime: ["exact", "5min", "10min"].includes(formData.notificationTime) 
-        ? formData.notificationTime 
-        : "exact",
-      // Ensure boolean fields are explicitly converted to boolean
-      notifyFajr: Boolean(formData.notifyFajr),
-      notifyZuhr: Boolean(formData.notifyZuhr),
-      notifyAsr: Boolean(formData.notifyAsr),
-      notifyMaghrib: Boolean(formData.notifyMaghrib),
-      notifyIsha: Boolean(formData.notifyIsha),
-      // Ensure number fields are numbers
-      menstruationDays: Number(formData.menstruationDays),
-      cycleDays: Number(formData.cycleDays)
-    };
-    
-    console.log("Prepared settings for saving:", settings);
-    updateSettingsMutation.mutate(settings);
+    updateSettingsMutation.mutate(formData);
   };
 
   // Use our custom geolocation hook
@@ -259,6 +208,8 @@ export default function Settings() {
   const handleDetectLocation = () => {
     detectLocation();
   };
+
+  const telegramUser = getTelegramUser();
 
   return (
     <div className="p-4">
@@ -325,7 +276,7 @@ export default function Settings() {
           <div className="mb-4">
             <p className="text-sm text-gray-600 mb-2">Время напоминания</p>
             <RadioGroup
-              value={formData.notificationTime || "exact"}
+              value={formData.notificationTime}
               onValueChange={(value) => handleRadioChange("notificationTime", value)}
               className="flex flex-wrap gap-2"
             >
@@ -467,9 +418,6 @@ export default function Settings() {
               Уведомление будет отправлено на ваш аккаунт Telegram
             </p>
           </div>
-          
-          {/* Add link to the new notifications test page */}
-          <NotificationLink />
         </div>
 
         {/* Save Button */}

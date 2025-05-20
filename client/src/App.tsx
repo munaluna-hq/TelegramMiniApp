@@ -6,7 +6,6 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import NotFound from "@/pages/not-found";
 import Home from "@/pages/Home";
-import NotificationsTest from "@/pages/NotificationsTest";
 import { getTelegramUser } from "@/lib/telegram";
 import LoadingAnimation from "@/components/LoadingAnimation";
 import { useGeolocation } from "@/hooks/use-geolocation";
@@ -15,10 +14,6 @@ function Router() {
   return (
     <Switch>
       <Route path="/" component={Home} />
-      <Route path="/settings" component={Home} />
-      <Route path="/tracker" component={Home} />
-      <Route path="/calendar" component={Home} />
-      <Route path="/notifications-test" component={NotificationsTest} />
       <Route component={NotFound} />
     </Switch>
   );
@@ -43,14 +38,6 @@ function App() {
           });
           
           if (response.ok) {
-            const data = await response.json();
-            
-            // Store user ID in localStorage for use across the app
-            if (data.user && data.user.id) {
-              localStorage.setItem('userId', data.user.id.toString());
-              console.log('User authenticated with ID:', data.user.id);
-            }
-            
             setIsAuthenticated(true);
           }
         }
@@ -132,14 +119,6 @@ function App() {
             });
             
             if (response.ok) {
-              const data = await response.json();
-              
-              // Store user ID in localStorage for use across the app
-              if (data.user && data.user.id) {
-                localStorage.setItem('userId', data.user.id.toString());
-                console.log('User authenticated with ID:', data.user.id);
-              }
-              
               setIsAuthenticated(true);
             }
           }

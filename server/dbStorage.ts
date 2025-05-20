@@ -165,42 +165,43 @@ export class DatabaseStorage implements IStorage {
   }
   
   async saveSettings(userId: number, settings: any): Promise<void> {
-    // Log the settings being saved for debugging
-    console.log(`Saving settings for user ${userId}:`, JSON.stringify(settings, null, 2));
-    
     // Check if there are existing settings for this user
     const [existingSettings] = await db.select()
       .from(settingsTable)
       .where(eq(settingsTable.userId, userId));
     
-    // Make sure boolean values are properly handled
-    const processedSettings = {
-      city: settings.city || "",
-      latitude: settings.latitude || "",
-      longitude: settings.longitude || "",
-      notificationTime: settings.notificationTime,
-      // Explicitly convert to boolean to avoid any type issues
-      notifyFajr: Boolean(settings.notifyFajr),
-      notifyZuhr: Boolean(settings.notifyZuhr),
-      notifyAsr: Boolean(settings.notifyAsr),
-      notifyMaghrib: Boolean(settings.notifyMaghrib),
-      notifyIsha: Boolean(settings.notifyIsha),
-      menstruationDays: settings.menstruationDays,
-      cycleDays: settings.cycleDays
-    };
-    
     if (existingSettings) {
-      console.log(`Updating existing settings for user ${userId}`);
       // Update existing settings
       await db.update(settingsTable)
-        .set(processedSettings)
+        .set({
+          city: settings.city || "",
+          latitude: settings.latitude || "",
+          longitude: settings.longitude || "",
+          notificationTime: settings.notificationTime,
+          notifyFajr: settings.notifyFajr,
+          notifyZuhr: settings.notifyZuhr,
+          notifyAsr: settings.notifyAsr,
+          notifyMaghrib: settings.notifyMaghrib,
+          notifyIsha: settings.notifyIsha,
+          menstruationDays: settings.menstruationDays,
+          cycleDays: settings.cycleDays
+        })
         .where(eq(settingsTable.userId, userId));
     } else {
-      console.log(`Creating new settings for user ${userId}`);
       // Insert new settings
       await db.insert(settingsTable).values({
         userId,
-        ...processedSettings
+        city: settings.city || "",
+        latitude: settings.latitude || "",
+        longitude: settings.longitude || "",
+        notificationTime: settings.notificationTime,
+        notifyFajr: settings.notifyFajr,
+        notifyZuhr: settings.notifyZuhr,
+        notifyAsr: settings.notifyAsr,
+        notifyMaghrib: settings.notifyMaghrib,
+        notifyIsha: settings.notifyIsha,
+        menstruationDays: settings.menstruationDays,
+        cycleDays: settings.cycleDays
       });
     }
   }
