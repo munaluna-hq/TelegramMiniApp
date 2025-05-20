@@ -56,14 +56,14 @@ export interface CitiesResponse {
 // Get prayer times from Muftyat.kz API using coordinates
 export async function getPrayerTimes(latitude: number, longitude: number, date: Date): Promise<PrayerTimes> {
   try {
-    // Format the year
-    const year = format(date, "yyyy");
-    
     // Format the full date for returning in the result
     const formattedDate = format(date, "dd-MM-yyyy");
     
+    // Format API date parameter (expected by the API)
+    const apiDate = format(date, "yyyy-MM-dd");
+    
     // Construct the URL for the Muftyat.kz API using the namaz endpoint
-    const url = `https://namaz.muftyat.kz/kk/namaz/api/times/?latitude=${latitude}&longitude=${longitude}`;
+    const url = `https://namaz.muftyat.kz/kk/namaz/api/times/?latitude=${latitude}&longitude=${longitude}&date=${apiDate}`;
     
     console.log(`Fetching prayer times from: ${url}`);
     
@@ -75,38 +75,24 @@ export async function getPrayerTimes(latitude: number, longitude: number, date: 
     
     const data = await response.json() as MuftyatPrayerTimesResponse;
     
-    // Find the prayer times for the requested date
-    // The API returns times for the whole year, so we need to find the correct day
-    const dayOfYear = getDayOfYear(date);
-    const dayData = data.times[dayOfYear - 1]; // Adjust for 0-indexed array
+    console.log("Received prayer times data:", JSON.stringify(data));
     
-    if (!dayData) {
-      throw new Error(`No prayer times found for ${formattedDate}`);
-    }
-    
-    // Calculate approximate midnight (midpoint between maghrib and fajr of next day)
-    // If it's the last day of the year, use approximate fixed midnight
+    // Calculate approximate midnight (5 hours after maghrib as an approximation)
     let midnight = "00:00";
     try {
-      if (dayOfYear < data.times.length) {
-        const nextDayFajr = data.times[dayOfYear].fadjr;
-        midnight = calculateMidnight(dayData.maghrib, nextDayFajr);
-      } else {
-        // For the last day of the year, use maghrib + 5 hours as an approximation
-        midnight = addHoursToTime(dayData.maghrib, 5);
-      }
+      midnight = addHoursToTime(data.maghrib, 5);
     } catch (e) {
       console.warn("Could not calculate midnight, using default:", e);
     }
     
-    // Convert to simplified format
+    // Convert to our simplified format
     return {
-      fajr: formatTime(dayData.fadjr),
-      sunrise: formatTime(dayData.sunrise),
-      zuhr: formatTime(dayData.dhuhr),
-      asr: formatTime(dayData.asr),
-      maghrib: formatTime(dayData.maghrib),
-      isha: formatTime(dayData.isha),
+      fajr: formatTime(data.fajr),
+      sunrise: formatTime(data.sunrise),
+      zuhr: formatTime(data.dhuhr),
+      asr: formatTime(data.asr),
+      maghrib: formatTime(data.maghrib),
+      isha: formatTime(data.isha),
       midnight: formatTime(midnight),
       date: formattedDate
     };
@@ -119,62 +105,44 @@ export async function getPrayerTimes(latitude: number, longitude: number, date: 
 // Get prayer times by city ID
 export async function getPrayerTimesByCity(cityId: string, date: Date): Promise<PrayerTimes> {
   try {
-    // Format the year
-    const year = format(date, "yyyy");
+    // Find the city in our database to get its coordinates
+    // For now, we'll just get the coordinates from the API and use that with getPrayerTimes
     
     // Format the full date for returning in the result
     const formattedDate = format(date, "dd-MM-yyyy");
     
-    // Construct the URL for the Muftyat.kz API with city ID
-    const url = `https://api.muftyat.kz/prayer-times/${year}/city/${cityId}`;
+    // Format the API date parameter
+    const apiDate = format(date, "yyyy-MM-dd");
     
-    console.log(`Fetching prayer times for city ID ${cityId} from: ${url}`);
+    // Use the coordinates endpoint to get city coordinates
+    const cityDataUrl = `https://api.muftyat.kz/cities/${cityId}/`;
     
-    const response = await fetch(url);
+    console.log(`Getting city data from: ${cityDataUrl}`);
     
-    if (!response.ok) {
-      throw new Error(`Failed to fetch prayer times: ${response.statusText}`);
-    }
-    
-    const data = await response.json() as MuftyatPrayerTimesResponse;
-    
-    // Find the prayer times for the requested date
-    // The API returns times for the whole year, so we need to find the correct day
-    const dayOfYear = getDayOfYear(date);
-    const dayData = data.times[dayOfYear - 1]; // Adjust for 0-indexed array
-    
-    if (!dayData) {
-      throw new Error(`No prayer times found for ${formattedDate}`);
-    }
-    
-    // Calculate approximate midnight (midpoint between maghrib and fajr of next day)
-    // If it's the last day of the year, use approximate fixed midnight
-    let midnight = "00:00";
     try {
-      if (dayOfYear < data.times.length) {
-        const nextDayFajr = data.times[dayOfYear].fadjr;
-        midnight = calculateMidnight(dayData.maghrib, nextDayFajr);
-      } else {
-        // For the last day of the year, use maghrib + 5 hours as an approximation
-        midnight = addHoursToTime(dayData.maghrib, 5);
+      const cityResponse = await fetch(cityDataUrl);
+      
+      if (!cityResponse.ok) {
+        throw new Error(`Failed to get city data: ${cityResponse.statusText}`);
       }
-    } catch (e) {
-      console.warn("Could not calculate midnight, using default:", e);
+      
+      const cityData = await cityResponse.json() as City;
+      
+      if (!cityData.lat || !cityData.lng) {
+        throw new Error(`City data does not contain coordinates for city ID ${cityId}`);
+      }
+      
+      console.log(`Found coordinates for city ${cityId}: lat=${cityData.lat}, lng=${cityData.lng}`);
+      
+      // Now use getPrayerTimes with the city's coordinates
+      return getPrayerTimes(parseFloat(cityData.lat), parseFloat(cityData.lng), date);
+      
+    } catch (cityError) {
+      console.error(`Error getting city data: ${cityError}`);
+      throw cityError;
     }
-    
-    // Convert to simplified format
-    return {
-      fajr: formatTime(dayData.fadjr),
-      sunrise: formatTime(dayData.sunrise),
-      zuhr: formatTime(dayData.dhuhr),
-      asr: formatTime(dayData.asr),
-      maghrib: formatTime(dayData.maghrib),
-      isha: formatTime(dayData.isha),
-      midnight: formatTime(midnight),
-      date: formattedDate
-    };
   } catch (error) {
-    console.error("Error fetching prayer times:", error);
+    console.error("Error fetching prayer times for city:", error);
     throw error;
   }
 }
