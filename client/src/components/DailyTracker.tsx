@@ -176,12 +176,18 @@ export default function DailyTracker() {
   // Save worship data mutation
   const saveWorshipMutation = useMutation({
     mutationFn: async (data: any) => {
-      // Add user ID to the data being sent
+      // Add user ID to the data being sent - make sure it's at the right level
+      console.log(`Saving worship data for user ID: ${userId}`);
       return apiRequest("POST", "/api/worship", {
         date: format(currentDate, 'yyyy-MM-dd'),
-        userId: userId, // Include user ID for proper data isolation
-        isMiniApp: !!window.Telegram?.WebApp, // Check if we're in Telegram Mini App
-        ...data
+        prayers: data.prayers,
+        quranReading: data.quranReading,
+        dua: data.dua,
+        sadaqa: data.sadaqa,
+        fast: data.fast,
+        note: data.note,
+        userId: userId, // Make sure userId is passed directly
+        isMiniApp: !!window.Telegram?.WebApp // Check if we're in Telegram Mini App
       });
     },
     onSuccess: () => {
