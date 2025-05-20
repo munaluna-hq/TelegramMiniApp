@@ -14,8 +14,10 @@ import { useToast } from "@/hooks/use-toast";
 import NotificationLink from "@/components/NotificationLink";
 
 export default function Settings() {
+  // Get user ID from localStorage (saved after authentication) or fall back to Telegram
+  const storedUserId = localStorage.getItem('userId');
   const telegramUser = getTelegramUser();
-  const userId = telegramUser?.id || 1; // Get user ID from Telegram or default to 1
+  const userId = storedUserId ? parseInt(storedUserId) : (telegramUser?.id || 1);
   
   const { data: settings } = useQuery<any>({
     queryKey: ['/api/settings', userId],
@@ -28,16 +30,17 @@ export default function Settings() {
   const [isSendingTestNotification, setIsSendingTestNotification] = useState(false);
 
   // Add a query to fetch cities
-  const { data: citiesResponse, isLoading: isLoadingCities } = useQuery<CitiesResponse>({
+  // Fetch the list of cities from our database
+  const { data: citiesData, isLoading: isLoadingCities } = useQuery({
     queryKey: ['/api/cities'],
     queryFn: async () => {
       const response = await apiRequest('GET', '/api/cities');
-      return response as CitiesResponse;
+      return response;
     }
   });
   
   // Extract the cities from the response
-  const cities = citiesResponse?.results;
+  const cities = citiesData?.results;
 
   const [formData, setFormData] = useState({
     cityId: 0,
@@ -55,23 +58,16 @@ export default function Settings() {
     cycleDays: 28
   });
 
-  // Define interface for cities from Muftyat.kz API
+  // Interface for city data
   interface City {
     id: number;
+    apiId: number;
     title: string;
     lng: string;
     lat: string;
     timezone: string;
     region: string;
     district: string | null;
-  }
-  
-  // API response structure from Muftyat.kz
-  interface CitiesResponse {
-    count: number;
-    next: string | null;
-    previous: string | null;
-    results: City[];
   }
 
   // Define interface for settings
@@ -284,12 +280,14 @@ export default function Settings() {
   const handleCityChange = (cityId: string) => {
     if (!cities || !Array.isArray(cities)) return;
     
-    const selectedCity = cities.find((city: City) => city.id === parseInt(cityId));
+    const selectedCity = cities.find((city: City) => city.id.toString() === cityId);
     
     if (selectedCity) {
+      console.log("Selected city:", selectedCity);
+      
       setFormData((prev) => ({
         ...prev,
-        cityId: selectedCity.id,
+        cityId: selectedCity.apiId, // Use apiId as that's what the backend expects for prayer times
         cityName: selectedCity.title,
         latitude: selectedCity.lat,
         longitude: selectedCity.lng,
@@ -328,11 +326,13 @@ export default function Settings() {
                   {isLoadingCities ? (
                     <div className="p-2 text-center">Загрузка городов...</div>
                   ) : cities && Array.isArray(cities) && cities.length > 0 ? (
-                    cities.map((city: City) => (
-                      <SelectItem key={city.id} value={city.id.toString()}>
-                        {city.title}
-                      </SelectItem>
-                    ))
+                    <>
+                      {cities.map((city: City) => (
+                        <SelectItem key={city.id} value={city.id.toString()}>
+                          {city.title}
+                        </SelectItem>
+                      ))}
+                    </>
                   ) : (
                     <div className="p-2 text-center">Не удалось загрузить список городов</div>
                   )}
