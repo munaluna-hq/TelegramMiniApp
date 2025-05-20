@@ -61,14 +61,19 @@ export default function Settings() {
   // Update form data when settings are loaded
   useEffect(() => {
     if (settings) {
-      console.log("Loading settings:", settings);
+      console.log("Loading settings from server:", settings);
       const userSettings = settings as UserSettings;
-      setFormData({
+      
+      // Create a new settings object with default values for missing properties
+      const updatedFormData = {
         city: userSettings.city || "",
         latitude: userSettings.latitude || "",
         longitude: userSettings.longitude || "",
-        notificationTime: userSettings.notificationTime || "exact",
-        // Use null coalescing to properly handle false values
+        // Make sure notification time is always one of the valid options
+        notificationTime: ["exact", "5min", "10min"].includes(userSettings.notificationTime || "") 
+          ? userSettings.notificationTime || "exact"
+          : "exact",
+        // Use null coalescing (??) operator to handle false values correctly
         notifyFajr: userSettings.notifyFajr ?? false,
         notifyZuhr: userSettings.notifyZuhr ?? true,
         notifyAsr: userSettings.notifyAsr ?? true,
@@ -76,7 +81,10 @@ export default function Settings() {
         notifyIsha: userSettings.notifyIsha ?? true,
         menstruationDays: userSettings.menstruationDays || 5,
         cycleDays: userSettings.cycleDays || 28
-      });
+      };
+      
+      console.log("Setting form data to:", updatedFormData);
+      setFormData(updatedFormData);
     }
   }, [settings]);
 
@@ -192,6 +200,7 @@ export default function Settings() {
   };
 
   const handleRadioChange = (name: string, value: string) => {
+    console.log(`Radio changed: ${name} = ${value}`);
     setFormData((prev) => ({
       ...prev,
       [name]: value,
@@ -199,6 +208,7 @@ export default function Settings() {
   };
 
   const handleSwitchChange = (id: string, checked: boolean) => {
+    console.log(`Switch changed: ${id} = ${checked}`);
     setFormData((prev) => ({
       ...prev,
       [id]: checked,
@@ -209,16 +219,25 @@ export default function Settings() {
     e.preventDefault();
     console.log("Submitting settings form data:", formData);
     
-    // Ensure boolean fields are properly converted to boolean values
+    // Ensure all fields are correctly formatted and typed
     const settings = {
       ...formData,
+      // Make sure notification time is valid
+      notificationTime: ["exact", "5min", "10min"].includes(formData.notificationTime) 
+        ? formData.notificationTime 
+        : "exact",
+      // Ensure boolean fields are explicitly converted to boolean
       notifyFajr: Boolean(formData.notifyFajr),
       notifyZuhr: Boolean(formData.notifyZuhr),
       notifyAsr: Boolean(formData.notifyAsr),
       notifyMaghrib: Boolean(formData.notifyMaghrib),
-      notifyIsha: Boolean(formData.notifyIsha)
+      notifyIsha: Boolean(formData.notifyIsha),
+      // Ensure number fields are numbers
+      menstruationDays: Number(formData.menstruationDays),
+      cycleDays: Number(formData.cycleDays)
     };
     
+    console.log("Prepared settings for saving:", settings);
     updateSettingsMutation.mutate(settings);
   };
 
@@ -306,7 +325,7 @@ export default function Settings() {
           <div className="mb-4">
             <p className="text-sm text-gray-600 mb-2">Время напоминания</p>
             <RadioGroup
-              value={formData.notificationTime}
+              value={formData.notificationTime || "exact"}
               onValueChange={(value) => handleRadioChange("notificationTime", value)}
               className="flex flex-wrap gap-2"
             >
