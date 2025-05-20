@@ -90,14 +90,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Start a new cycle
   apiRouter.post("/cycles/start", async (req: Request, res: Response) => {
     try {
-      const { startDate } = req.body;
+      const { startDate, userId: requestUserId } = req.body;
       
       if (!startDate) {
         return res.status(400).json({ message: "Start date is required" });
       }
       
-      // In a real app, we'd get the user ID from the session
-      const userId = 1;
+      // Get user ID from request body or query parameters
+      const userId = requestUserId ? parseInt(requestUserId) : 
+                   (req.query.userId ? parseInt(req.query.userId as string) : 1);
       
       // Get user settings for menstruation and cycle duration
       const settings = await storage.getSettings(userId);
