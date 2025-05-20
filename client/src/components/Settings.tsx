@@ -28,13 +28,16 @@ export default function Settings() {
   const [isSendingTestNotification, setIsSendingTestNotification] = useState(false);
 
   // Add a query to fetch cities
-  const { data: cities, isLoading: isLoadingCities } = useQuery<City[]>({
+  const { data: citiesResponse, isLoading: isLoadingCities } = useQuery<CitiesResponse>({
     queryKey: ['/api/cities'],
     queryFn: async () => {
       const response = await apiRequest('GET', '/api/cities');
-      return response as City[];
+      return response as CitiesResponse;
     }
   });
+  
+  // Extract the cities from the response
+  const cities = citiesResponse?.results;
 
   const [formData, setFormData] = useState({
     cityId: 0,
@@ -52,15 +55,23 @@ export default function Settings() {
     cycleDays: 28
   });
 
-  // Define interface for cities
+  // Define interface for cities from Muftyat.kz API
   interface City {
     id: number;
-    name: string;
-    name_kz: string;
-    name_ru: string;
-    lat: number;
-    lng: number;
-    elevation: number;
+    title: string;
+    lng: string;
+    lat: string;
+    timezone: string;
+    region: string;
+    district: string | null;
+  }
+  
+  // API response structure from Muftyat.kz
+  interface CitiesResponse {
+    count: number;
+    next: string | null;
+    previous: string | null;
+    results: City[];
   }
 
   // Define interface for settings
@@ -279,16 +290,16 @@ export default function Settings() {
       setFormData((prev) => ({
         ...prev,
         cityId: selectedCity.id,
-        cityName: selectedCity.name_ru || selectedCity.name,
-        latitude: selectedCity.lat.toString(),
-        longitude: selectedCity.lng.toString(),
+        cityName: selectedCity.title,
+        latitude: selectedCity.lat,
+        longitude: selectedCity.lng,
         // Keep the legacy city field for backward compatibility
-        city: selectedCity.name_ru || selectedCity.name
+        city: selectedCity.title
       }));
       
       toast({
         title: "Город выбран",
-        description: `Выбран город: ${selectedCity.name_ru || selectedCity.name}`,
+        description: `Выбран город: ${selectedCity.title}`,
       });
     }
   };
@@ -319,7 +330,7 @@ export default function Settings() {
                   ) : cities && Array.isArray(cities) && cities.length > 0 ? (
                     cities.map((city: City) => (
                       <SelectItem key={city.id} value={city.id.toString()}>
-                        {city.name_ru || city.name}
+                        {city.title}
                       </SelectItem>
                     ))
                   ) : (

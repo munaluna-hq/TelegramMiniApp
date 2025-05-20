@@ -28,12 +28,20 @@ export interface PrayerTimes {
 // Interface for Muftyat.kz cities API response
 export interface City {
   id: number;
-  name: string;
-  name_kz: string;
-  name_ru: string;
-  lat: number;
-  lng: number;
-  elevation: number;
+  title: string;
+  lng: string;
+  lat: string;
+  timezone: string;
+  region: string;
+  district: string | null;
+}
+
+// Response format from the Muftyat.kz API
+export interface CitiesResponse {
+  count: number;
+  next: string | null;
+  previous: string | null;
+  results: City[];
 }
 
 // Get prayer times from Muftyat.kz API using coordinates
