@@ -1,9 +1,18 @@
 import fetch from "node-fetch";
 import { format } from "date-fns";
 
-// Muftyat.kz API response interface
+// Muftyat.kz Namaz API response interface
 interface MuftyatPrayerTimesResponse {
-  times: {
+  // New format from namaz.muftyat.kz
+  date: string;
+  fajr: string;
+  sunrise: string;
+  dhuhr: string;
+  asr: string;
+  maghrib: string;
+  isha: string;
+  // Times array for the original API format
+  times?: {
     fadjr: string;
     sunrise: string;
     dhuhr: string;
@@ -53,8 +62,8 @@ export async function getPrayerTimes(latitude: number, longitude: number, date: 
     // Format the full date for returning in the result
     const formattedDate = format(date, "dd-MM-yyyy");
     
-    // Construct the URL for the Muftyat.kz API
-    const url = `https://api.muftyat.kz/prayer-times/${year}/${latitude}/${longitude}`;
+    // Construct the URL for the Muftyat.kz API using the namaz endpoint
+    const url = `https://namaz.muftyat.kz/kk/namaz/api/times/?latitude=${latitude}&longitude=${longitude}`;
     
     console.log(`Fetching prayer times from: ${url}`);
     

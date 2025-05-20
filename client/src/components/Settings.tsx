@@ -31,16 +31,13 @@ export default function Settings() {
 
   // Add a query to fetch cities
   // Fetch the list of cities from our database
-  const { data: citiesData, isLoading: isLoadingCities } = useQuery({
+  const { data: cities, isLoading: isLoadingCities } = useQuery({
     queryKey: ['/api/cities'],
     queryFn: async () => {
       const response = await apiRequest('GET', '/api/cities');
-      return response;
+      return response; // Our server already returns the cities array
     }
   });
-  
-  // Extract the cities from the response
-  const cities = citiesData?.results;
 
   const [formData, setFormData] = useState({
     cityId: 0,
