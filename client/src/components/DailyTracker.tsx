@@ -13,6 +13,7 @@ import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
+import { getTelegramUser } from "@/lib/telegram";
 
 export default function DailyTracker() {
   const [currentDate, setCurrentDate] = useState<Date>(new Date());
@@ -160,9 +161,14 @@ export default function DailyTracker() {
   // Save worship data mutation
   const saveWorshipMutation = useMutation({
     mutationFn: async (data: any) => {
+      // Get the current user's Telegram information to ensure correct user identification
+      const telegramUser = getTelegramUser();
+      
       return apiRequest("POST", "/api/worship", {
         date: format(currentDate, 'yyyy-MM-dd'),
-        ...data
+        ...data,
+        // Include the user's Telegram information for proper identification
+        telegramUser: telegramUser
       });
     },
     onSuccess: () => {
